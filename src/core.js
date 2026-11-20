@@ -13,7 +13,7 @@
   'use strict';
 
   var VERSI_SKEMA = 1;
-  var VERSI_APLIKASI = '1.2.0';
+  var VERSI_APLIKASI = '1.3.0';
 
   // ---------------------------------------------------------------------------
   // Konstanta domain
@@ -184,6 +184,22 @@
       var n = daysUntil(a.jatuhTempo, today);
       return !isNaN(n) && n <= lim;
     }).sort(function (a, b) { return dayNumber(a.jatuhTempo) - dayNumber(b.jatuhTempo); });
+  }
+
+  /**
+   * Geser tanggal kalender data contoh agar tetap relatif terhadap hari ini.
+   * Data dibuat dengan `tanggal_acuan`; semua jatuhTempo dan tenggat digeser sebesar
+   * selisih hari antara acuan dan hari ini. Tidak mengubah input. Tanpa acuan = tidak digeser.
+   */
+  function shiftSeedDates(data, today) {
+    if (!isObj(data) || !isValidISODate(data.tanggal_acuan) || !isValidISODate(today)) return data;
+    var delta = daysUntil(today, data.tanggal_acuan);
+    var out = JSON.parse(JSON.stringify(data));
+    if (delta === 0) return out;
+    (out.aset || []).forEach(function (a) { if (isValidISODate(a.jatuhTempo)) a.jatuhTempo = addDays(a.jatuhTempo, delta); });
+    (out.tugas || []).forEach(function (t) { if (isValidISODate(t.tenggat)) t.tenggat = addDays(t.tenggat, delta); });
+    out.tanggal_acuan = today;
+    return out;
   }
 
   /** Usulan tanggal jatuh tempo berikutnya setelah "Sudah diurus" (default +1 tahun). */
@@ -1054,7 +1070,7 @@
     parseISODate: parseISODate, isValidISODate: isValidISODate, dayNumber: dayNumber, todayISO: todayISO,
     daysUntil: daysUntil, addDays: addDays, addMonths: addMonths, addYears: addYears,
     dueBucket: dueBucket, matchesReminderTab: matchesReminderTab, assetsNeedingAttention: assetsNeedingAttention,
-    suggestNextDue: suggestNextDue, relativeDueLabel: relativeDueLabel,
+    suggestNextDue: suggestNextDue, shiftSeedDates: shiftSeedDates, relativeDueLabel: relativeDueLabel,
     formatTanggal: formatTanggal, formatWaktu: formatWaktu,
     parseRupiah: parseRupiah, formatRupiah: formatRupiah, validateRef: validateRef, detectSensitive: detectSensitive,
     csvEscape: csvEscape, toCSV: toCSV, CSV_BOM: CSV_BOM,

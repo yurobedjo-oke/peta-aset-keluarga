@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AISnnh2WZ2lX64QdU66LRycxjIrO8PkCz3UWDNYhJmU='; style-src 'sha256-QpFHfEpQxhaqW48OEDlO543+Qs8j+QJG23VnYRCqTVI='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-R/yRKiR8ZWbNBVX5W67UPPp2KOQ/8A/bDE7esLUdBYA='; style-src 'sha256-63eT6iTj/ocoBquZOkzq0DgALbO0s8LVm9SQPhhuvg8='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>Peta Aset Keluarga</title>
 <style>
 :root{
-  --bg:#f4f6f8;--surface:#ffffff;--surface2:#eef1f5;--text:#1b1f24;--muted:#4a5360;--line:#d3d9e0;
-  --primary:#0b5cad;--primary-text:#ffffff;--primary-soft:#e3eefa;
-  --danger:#b42318;--danger-soft:#fdecea;--warn:#7a4100;--warn-soft:#fff2df;--ok:#146c2e;--ok-soft:#e5f4ea;
-  --focus:#c25e00;--radius:10px;--shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.05);
+  --bg:#f6f4ef;--surface:#ffffff;--surface2:#f1eee7;--text:#1f2a2e;--muted:#52606a;--line:#e4dfd4;
+  --primary:#0f766e;--primary-strong:#115e59;--primary-text:#ffffff;--primary-soft:#e2f3f0;--accent:#d97706;--accent-soft:#fdf1df;
+  --danger:#b42318;--danger-soft:#fdecea;--warn:#8a4b00;--warn-soft:#fff3df;--ok:#166534;--ok-soft:#e6f4ea;
+  --focus:#d97706;--radius:16px;--shadow:0 1px 2px rgba(31,42,46,.05),0 8px 24px rgba(31,42,46,.06);
   --fs:16px;
 }
 [data-theme="gelap"]{
-  --bg:#11151a;--surface:#1b2129;--surface2:#242c36;--text:#e8edf2;--muted:#aeb8c3;--line:#38424e;
-  --primary:#7ab8ff;--primary-text:#0b1520;--primary-soft:#1d3047;
+  --bg:#101716;--surface:#18211f;--surface2:#212c2a;--text:#e9f0ee;--muted:#a9b8b4;--line:#33413e;
+  --primary:#5fd4c4;--primary-strong:#8ee3d7;--primary-text:#0b1a18;--primary-soft:#173a36;--accent:#fbbf24;--accent-soft:#3a2d12;
   --danger:#ff8a80;--danger-soft:#3a1d1b;--warn:#ffcc80;--warn-soft:#3a2c14;--ok:#86d69c;--ok-soft:#173222;
-  --focus:#ffb35c;--shadow:none;
+  --focus:#fbbf24;--shadow:none;
 }
 [data-font="besar"]{--fs:19px}
 *{box-sizing:border-box}
@@ -134,12 +134,57 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .steps span{flex:1;height:.35rem;background:var(--surface2);border-radius:4px}
 .steps span.on{background:var(--primary)}
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.25rem .75rem}
+/* ---- Gaya hangat dan ramah ---- */
+body{font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,-apple-system,Roboto,"Noto Sans",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#sidebar{padding:1.25rem .9rem;border-right-color:var(--line)}
+.brand{display:flex;gap:.7rem;align-items:center;margin:0 .4rem 1.4rem}
+.brand-logo{flex:none;width:2.6rem;height:2.6rem;border-radius:14px;display:grid;place-items:center;font-size:1.35rem;background:linear-gradient(135deg,var(--primary),var(--primary-strong));box-shadow:0 4px 12px rgba(15,118,110,.3)}
+.brand span{display:block;line-height:1.2}
+.nav-link{padding:.6rem .75rem;border-radius:12px;margin-bottom:.15rem;font-weight:500}
+.nav-link[aria-current="page"]{background:var(--primary-soft);color:var(--primary);box-shadow:inset 3px 0 0 var(--primary)}
+.topbar{background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(8px);padding:.85rem 1.5rem}
+.topbar input{border-radius:999px;padding-left:1rem}
+.topbar .btn{border-radius:999px}
+.local-note{background:var(--primary-soft);color:var(--text);border-bottom:none;padding:.4rem 1.5rem}
+main{padding:1.5rem}
+h2{font-size:1.55rem;letter-spacing:-.01em}
+.card{border-radius:var(--radius);border-color:var(--line);padding:1.15rem 1.25rem}
+.btn{border-radius:12px;min-height:2.75rem;padding:.55rem 1rem;font-weight:600;transition:background .15s,transform .05s}
+.btn:active{transform:translateY(1px)}
+.btn.primary:hover{background:var(--primary-strong);border-color:var(--primary-strong)}
+.btn.sm{min-height:2.2rem;border-radius:10px;font-weight:500}
+input[type=text],input[type=search],input[type=date],input[type=tel],input[type=password],input[type=number],select,textarea{border-radius:12px;min-height:2.75rem;padding:.55rem .8rem}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:3px solid color-mix(in srgb,var(--primary) 25%,transparent);outline-offset:0}
+.banner{border-radius:14px;border-width:1px;padding:.85rem 1.1rem}
+.badge{padding:.1rem .6rem;font-weight:600}
+.bar-track{border-radius:999px;height:.75rem}
+.bar-fill{border-radius:999px;background:linear-gradient(90deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)))}
+.table-wrap{border-radius:var(--radius)}
+th{background:var(--surface2)}
+.empty{border-radius:var(--radius);background:var(--surface);padding:2rem 1.5rem}
+.hero{background:linear-gradient(135deg,#0f766e 0%,#115e59 60%,#134e4a 100%);color:#fff;border-radius:22px;padding:1.6rem 1.6rem 1.4rem;margin-bottom:1.25rem;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(15,118,110,.25)}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero h2{color:#fff;margin:0 0 .3rem;font-size:1.65rem}
+.hero p{margin:0 0 1.1rem;color:#e3f6f3;max-width:40rem}
+.hero .btn{background:#fff;color:#0f5f58;border-color:#fff;position:relative;z-index:1}
+.hero .btn:hover{background:#e9f7f5}
+.hero .btn.primary{background:#fbbf24;border-color:#fbbf24;color:#3b2500}
+.hero .btn.primary:hover{background:#fcd34d}
+.stat{display:flex;gap:.9rem;align-items:center}
+.stat-ico{flex:none;width:3rem;height:3rem;border-radius:14px;display:grid;place-items:center;font-size:1.4rem;background:var(--primary-soft)}
+.stat-ico.amber{background:var(--accent-soft)}
+.stat .big{line-height:1.15;font-size:1.4rem;white-space:nowrap}
+.stat>div:last-child{min-width:0}
+.items .card{transition:box-shadow .15s,transform .15s}
+.items .card:hover{box-shadow:0 10px 28px rgba(31,42,46,.1);transform:translateY(-1px)}
 @media (max-width:820px){
   .app{grid-template-columns:1fr}
   #sidebar{position:fixed;left:0;top:0;bottom:0;width:min(290px,85vw);z-index:40;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.3)}
   #sidebar.open{transform:none}
   .overlay.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30}
   .topbar{padding:.6rem .8rem;flex-wrap:wrap}
+  .hero{padding:1.25rem 1.1rem;border-radius:18px}
+  .hero h2{font-size:1.35rem}
   .topbar form{width:100%}
   .topbar input{width:100%;max-width:none}
   main{padding:1rem .8rem}
@@ -151,6 +196,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   .bottombar{display:flex;position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;padding-bottom:env(safe-area-inset-bottom)}
   .bottombar a,.bottombar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:.1rem;padding:.4rem .2rem;font:inherit;font-size:.72rem;color:var(--muted);text-decoration:none;background:none;border:none;cursor:pointer;min-height:3.2rem}
   .bottombar [aria-current=page]{color:var(--primary);font-weight:700}
+  .bottombar [aria-current=page] .ico{background:var(--primary-soft);border-radius:999px;padding:0 .9rem}
   .bottombar .ico{font-size:1.2rem}
 }
 @media print{
@@ -161,6 +207,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   .app{display:block}
   main{padding:0;max-width:none}
   .print-only{display:block}
+  .hero{display:none!important}
   .card{box-shadow:none;border:none;padding:0}
   table{font-size:9.5pt}
   tr{break-inside:avoid}
@@ -189,7 +236,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <div class="app" id="app">
   <aside id="sidebar" aria-label="Navigasi utama">
-    <a class="brand" href="#/beranda"><span id="brand-name">Peta Aset Keluarga</span><small id="brand-sub">Catatan aset dan dokumen</small></a>
+    <a class="brand" href="#/beranda"><span class="brand-logo" aria-hidden="true">🗺️</span><span><span id="brand-name">Peta Aset Keluarga</span><small id="brand-sub">Catatan aset dan dokumen</small></span></a>
     <nav><ul id="nav-list"></ul></nav>
   </aside>
   <div class="overlay" id="overlay"></div>
@@ -231,7 +278,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   'use strict';
 
   var VERSI_SKEMA = 1;
-  var VERSI_APLIKASI = '1.2.0';
+  var VERSI_APLIKASI = '1.3.0';
 
   // ---------------------------------------------------------------------------
   // Konstanta domain
@@ -402,6 +449,22 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       var n = daysUntil(a.jatuhTempo, today);
       return !isNaN(n) && n <= lim;
     }).sort(function (a, b) { return dayNumber(a.jatuhTempo) - dayNumber(b.jatuhTempo); });
+  }
+
+  /**
+   * Geser tanggal kalender data contoh agar tetap relatif terhadap hari ini.
+   * Data dibuat dengan `tanggal_acuan`; semua jatuhTempo dan tenggat digeser sebesar
+   * selisih hari antara acuan dan hari ini. Tidak mengubah input. Tanpa acuan = tidak digeser.
+   */
+  function shiftSeedDates(data, today) {
+    if (!isObj(data) || !isValidISODate(data.tanggal_acuan) || !isValidISODate(today)) return data;
+    var delta = daysUntil(today, data.tanggal_acuan);
+    var out = JSON.parse(JSON.stringify(data));
+    if (delta === 0) return out;
+    (out.aset || []).forEach(function (a) { if (isValidISODate(a.jatuhTempo)) a.jatuhTempo = addDays(a.jatuhTempo, delta); });
+    (out.tugas || []).forEach(function (t) { if (isValidISODate(t.tenggat)) t.tenggat = addDays(t.tenggat, delta); });
+    out.tanggal_acuan = today;
+    return out;
   }
 
   /** Usulan tanggal jatuh tempo berikutnya setelah "Sudah diurus" (default +1 tahun). */
@@ -1272,7 +1335,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     parseISODate: parseISODate, isValidISODate: isValidISODate, dayNumber: dayNumber, todayISO: todayISO,
     daysUntil: daysUntil, addDays: addDays, addMonths: addMonths, addYears: addYears,
     dueBucket: dueBucket, matchesReminderTab: matchesReminderTab, assetsNeedingAttention: assetsNeedingAttention,
-    suggestNextDue: suggestNextDue, relativeDueLabel: relativeDueLabel,
+    suggestNextDue: suggestNextDue, shiftSeedDates: shiftSeedDates, relativeDueLabel: relativeDueLabel,
     formatTanggal: formatTanggal, formatWaktu: formatWaktu,
     parseRupiah: parseRupiah, formatRupiah: formatRupiah, validateRef: validateRef, detectSensitive: detectSensitive,
     csvEscape: csvEscape, toCSV: toCSV, CSV_BOM: CSV_BOM,
@@ -1292,7 +1355,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   };
 });
 
-var SEED = {"versi_skema":1,"aset":[{"id":"ast_c1","nama":"[CONTOH] Rumah Jl. Fiktif 12","kategori":"Rumah dan Bangunan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":850000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama, map biru","nomorReferensi":"**12","jatuhTempo":"2027-08-31","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pembayaran PBB.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c2","nama":"[CONTOH] Tanah Kebun Desa Fiktif","kategori":"Tanah","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":300000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama","nomorReferensi":"","jatuhTempo":"","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c3","nama":"[CONTOH] Motor Bebek 2019","kategori":"Kendaraan","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":9000000,"lokasiDokumen":"[CONTOH] Laci lemari ruang tengah","nomorReferensi":"xx34","jatuhTempo":"2026-12-05","kontakIds":["kon_c4"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pajak STNK tahunan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c4","nama":"[CONTOH] Deposito Bank Fiktif","kategori":"Tabungan atau Deposito","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":50000000,"lokasiDokumen":"[CONTOH] Map dokumen bank","nomorReferensi":"**5678","jatuhTempo":"2026-11-10","kontakIds":["kon_c1"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c5","nama":"[CONTOH] Polis Asuransi Jiwa","kategori":"Asuransi","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":200000000,"lokasiDokumen":"[CONTOH] Map dokumen asuransi","nomorReferensi":"**90","jatuhTempo":"2027-01-04","kontakIds":["kon_c2"],"status":"Aktif","catatan":"Entri CONTOH. Nilai = uang pertanggungan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c6","nama":"[CONTOH] Emas Batangan 10 gram","kategori":"Emas dan Logam Mulia","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":15000000,"lokasiDokumen":"[CONTOH] Brankas, kotak kecil","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c7","nama":"[CONTOH] Dompet Digital","kategori":"Aset Digital","pemilikAnggotaId":"","pemilikTeks":"[CONTOH] Anak Pertama","platform":"[CONTOH] Platform Fiktif","nilai":null,"lokasiDokumen":"[CONTOH] Disimpan di buku catatan keluarga","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH. Tidak ada password di sini.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c8","nama":"[CONTOH] Mobil Lama (sudah dijual)","kategori":"Kendaraan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":60000000,"lokasiDokumen":"","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Tidak Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"dokumen":[{"id":"dok_c1","nama":"[CONTOH] Sertifikat tanah rumah","jenis":"Sertifikat tanah","asetId":"ast_c1","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c2","nama":"[CONTOH] PBG rumah","jenis":"PBG atau IMB","asetId":"ast_c1","status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map biru","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c3","nama":"[CONTOH] Sertifikat tanah kebun","jenis":"Sertifikat tanah","asetId":"ast_c2","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c4","nama":"[CONTOH] BPKB motor","jenis":"BPKB","asetId":"ast_c3","status":"Asli Tersedia","lokasi":"[CONTOH] Laci lemari ruang tengah","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c5","nama":"[CONTOH] STNK motor","jenis":"STNK","asetId":"ast_c3","status":"Belum Ada","lokasi":"","catatan":"Entri CONTOH. Dibawa di dompet pemakai motor.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c6","nama":"[CONTOH] Bilyet deposito","jenis":"Bilyet deposito","asetId":"ast_c4","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen bank","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c7","nama":"[CONTOH] Polis asuransi jiwa","jenis":"Polis asuransi","asetId":"ast_c5","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen asuransi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c8","nama":"[CONTOH] Kartu keluarga","jenis":"Kartu keluarga","asetId":null,"status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c9","nama":"[CONTOH] Akta nikah","jenis":"Akta nikah","asetId":null,"status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH. Asli perlu dicari.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"anggota":[{"id":"ang_c1","nama":"[CONTOH] Bapak Fiktif","hubungan":"Kepala keluarga","peran":"Tidak ada peran","kontak":"","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c2","nama":"[CONTOH] Ibu Fiktif","hubungan":"Istri","peran":"Pelaksana","kontak":"0800-0000-0001","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c3","nama":"[CONTOH] Anak Pertama","hubungan":"Anak","peran":"Ahli waris","kontak":"0800-0000-0002","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c4","nama":"[CONTOH] Anak Kedua","hubungan":"Anak","peran":"Ahli waris","kontak":"","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"kontak":[{"id":"kon_c1","namaLembaga":"[CONTOH] Bank Fiktif Cabang Kota","kategori":"Bank","namaPetugas":"[CONTOH] Petugas Layanan","telepon":"0800-0000-0101","alamat":"[CONTOH] Jl. Contoh No. 1, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–15.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c2","namaLembaga":"[CONTOH] Asuransi Fiktif","kategori":"Asuransi","namaPetugas":"[CONTOH] Agen Asuransi","telepon":"0800-0000-0102","alamat":"","jamLayanan":"Senin–Sabtu 09.00–17.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c3","namaLembaga":"[CONTOH] Kantor Notaris Fiktif","kategori":"Notaris atau PPAT","namaPetugas":"[CONTOH] Notaris","telepon":"0800-0000-0103","alamat":"[CONTOH] Ruko Contoh Blok A, Kota Fiktif","jamLayanan":"Dengan janji temu","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c4","namaLembaga":"[CONTOH] Samsat Kota Fiktif","kategori":"Samsat","namaPetugas":"","telepon":"","alamat":"[CONTOH] Jl. Contoh Raya, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–14.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"tugas":[{"id":"tgs_c1","judul":"[CONTOH] Perbarui STNK motor","asetId":"ast_c3","tenggat":"2026-11-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c2","judul":"[CONTOH] Perpanjang polis asuransi jiwa","asetId":"ast_c5","tenggat":"2026-12-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c3","judul":"[CONTOH] Cek buku tabungan yang lama tidak aktif","asetId":null,"tenggat":"2027-01-15","status":"Berjalan","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c4","judul":"[CONTOH] Perbarui kontak ahli waris","asetId":null,"tenggat":"2026-12-15","status":"Belum","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c5","judul":"[CONTOH] Simpan salinan dokumen","asetId":null,"tenggat":"2026-10-01","status":"Selesai","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"riwayat":[],"pengaturan":{"namaKeluarga":"Contoh","tema":"terang","ukuranFont":"normal","formatTanggal":"panjang","onboardingSelesai":true,"catatRiwayat":true,"pin":null},"backup":{"terakhir":null},"panduan":{"centang":{}}};
+var SEED = {"versi_skema":1,"aset":[{"id":"ast_c1","nama":"[CONTOH] Rumah Jl. Fiktif 12","kategori":"Rumah dan Bangunan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":850000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama, map biru","nomorReferensi":"**12","jatuhTempo":"2027-08-31","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pembayaran PBB.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c2","nama":"[CONTOH] Tanah Kebun Desa Fiktif","kategori":"Tanah","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":300000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama","nomorReferensi":"","jatuhTempo":"","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c3","nama":"[CONTOH] Motor Bebek 2019","kategori":"Kendaraan","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":9000000,"lokasiDokumen":"[CONTOH] Laci lemari ruang tengah","nomorReferensi":"xx34","jatuhTempo":"2026-12-05","kontakIds":["kon_c4"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pajak STNK tahunan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c4","nama":"[CONTOH] Deposito Bank Fiktif","kategori":"Tabungan atau Deposito","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":50000000,"lokasiDokumen":"[CONTOH] Map dokumen bank","nomorReferensi":"**5678","jatuhTempo":"2026-11-10","kontakIds":["kon_c1"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c5","nama":"[CONTOH] Polis Asuransi Jiwa","kategori":"Asuransi","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":200000000,"lokasiDokumen":"[CONTOH] Map dokumen asuransi","nomorReferensi":"**90","jatuhTempo":"2027-01-04","kontakIds":["kon_c2"],"status":"Aktif","catatan":"Entri CONTOH. Nilai = uang pertanggungan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c6","nama":"[CONTOH] Emas Batangan 10 gram","kategori":"Emas dan Logam Mulia","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":15000000,"lokasiDokumen":"[CONTOH] Brankas, kotak kecil","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c7","nama":"[CONTOH] Dompet Digital","kategori":"Aset Digital","pemilikAnggotaId":"","pemilikTeks":"[CONTOH] Anak Pertama","platform":"[CONTOH] Platform Fiktif","nilai":null,"lokasiDokumen":"[CONTOH] Disimpan di buku catatan keluarga","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH. Tidak ada password di sini.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c8","nama":"[CONTOH] Mobil Lama (sudah dijual)","kategori":"Kendaraan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":60000000,"lokasiDokumen":"","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Tidak Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"dokumen":[{"id":"dok_c1","nama":"[CONTOH] Sertifikat tanah rumah","jenis":"Sertifikat tanah","asetId":"ast_c1","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c2","nama":"[CONTOH] PBG rumah","jenis":"PBG atau IMB","asetId":"ast_c1","status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map biru","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c3","nama":"[CONTOH] Sertifikat tanah kebun","jenis":"Sertifikat tanah","asetId":"ast_c2","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c4","nama":"[CONTOH] BPKB motor","jenis":"BPKB","asetId":"ast_c3","status":"Asli Tersedia","lokasi":"[CONTOH] Laci lemari ruang tengah","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c5","nama":"[CONTOH] STNK motor","jenis":"STNK","asetId":"ast_c3","status":"Belum Ada","lokasi":"","catatan":"Entri CONTOH. Dibawa di dompet pemakai motor.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c6","nama":"[CONTOH] Bilyet deposito","jenis":"Bilyet deposito","asetId":"ast_c4","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen bank","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c7","nama":"[CONTOH] Polis asuransi jiwa","jenis":"Polis asuransi","asetId":"ast_c5","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen asuransi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c8","nama":"[CONTOH] Kartu keluarga","jenis":"Kartu keluarga","asetId":null,"status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c9","nama":"[CONTOH] Akta nikah","jenis":"Akta nikah","asetId":null,"status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH. Asli perlu dicari.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"anggota":[{"id":"ang_c1","nama":"[CONTOH] Bapak Fiktif","hubungan":"Kepala keluarga","peran":"Tidak ada peran","kontak":"","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c2","nama":"[CONTOH] Ibu Fiktif","hubungan":"Istri","peran":"Pelaksana","kontak":"0800-0000-0001","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c3","nama":"[CONTOH] Anak Pertama","hubungan":"Anak","peran":"Ahli waris","kontak":"0800-0000-0002","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c4","nama":"[CONTOH] Anak Kedua","hubungan":"Anak","peran":"Ahli waris","kontak":"","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"kontak":[{"id":"kon_c1","namaLembaga":"[CONTOH] Bank Fiktif Cabang Kota","kategori":"Bank","namaPetugas":"[CONTOH] Petugas Layanan","telepon":"0800-0000-0101","alamat":"[CONTOH] Jl. Contoh No. 1, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–15.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c2","namaLembaga":"[CONTOH] Asuransi Fiktif","kategori":"Asuransi","namaPetugas":"[CONTOH] Agen Asuransi","telepon":"0800-0000-0102","alamat":"","jamLayanan":"Senin–Sabtu 09.00–17.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c3","namaLembaga":"[CONTOH] Kantor Notaris Fiktif","kategori":"Notaris atau PPAT","namaPetugas":"[CONTOH] Notaris","telepon":"0800-0000-0103","alamat":"[CONTOH] Ruko Contoh Blok A, Kota Fiktif","jamLayanan":"Dengan janji temu","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c4","namaLembaga":"[CONTOH] Samsat Kota Fiktif","kategori":"Samsat","namaPetugas":"","telepon":"","alamat":"[CONTOH] Jl. Contoh Raya, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–14.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"tugas":[{"id":"tgs_c1","judul":"[CONTOH] Perbarui STNK motor","asetId":"ast_c3","tenggat":"2026-11-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c2","judul":"[CONTOH] Perpanjang polis asuransi jiwa","asetId":"ast_c5","tenggat":"2026-12-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c3","judul":"[CONTOH] Cek buku tabungan yang lama tidak aktif","asetId":null,"tenggat":"2027-01-15","status":"Berjalan","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c4","judul":"[CONTOH] Perbarui kontak ahli waris","asetId":null,"tenggat":"2026-12-15","status":"Belum","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c5","judul":"[CONTOH] Simpan salinan dokumen","asetId":null,"tenggat":"2026-10-01","status":"Selesai","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"riwayat":[],"pengaturan":{"namaKeluarga":"Contoh","tema":"terang","ukuranFont":"normal","formatTanggal":"panjang","onboardingSelesai":true,"catatRiwayat":true,"pin":null},"backup":{"terakhir":null},"panduan":{"centang":{}},"tanggal_acuan":"2026-11-20"};
 var SEED_SUMBER = "contoh";
 var GUIDE_MD = "# Panduan Peta Aset Keluarga\n\nPanduan ini berisi langkah umum untuk mencatat aset dan menyiapkan dokumen keluarga. Isinya bukan nasihat hukum atau keuangan. Untuk wasiat dan urusan waris, konsultasikan dengan notaris.\n\n## Cara mendata aset\n\nMulailah dari aset yang paling besar nilainya atau yang paling sulit dilacak jika pemiliknya tidak ada, misalnya tanah, rumah, tabungan di bank yang jarang dipakai, dan polis asuransi. Satu aset dicatat sebagai satu entri.\n\nUntuk setiap aset, catat hal-hal yang membantu ahli waris menemukannya: nama yang mudah dikenali, siapa pemiliknya, di mana dokumen aslinya disimpan, dan siapa yang bisa dihubungi.\n\n- Gunakan nama yang jelas, misalnya \"Rumah Jl. Melati 12\" atau \"Deposito Bank ABC\".\n- Nilai cukup perkiraan. Tidak perlu tepat dan boleh dikosongkan.\n- Nomor referensi hanya diisi bagian yang disamarkan, misalnya 4 digit terakhir. Jangan menulis nomor rekening atau nomor kartu lengkap.\n- Untuk aset digital, cukup tulis nama platform dan di mana informasi aksesnya disimpan. Jangan pernah menulis password, PIN, seed phrase, atau kunci privat.\n- Isi tanggal jatuh tempo untuk pajak, perpanjangan, atau polis agar muncul di Pengingat.\n\n- [ ] Catat semua tanah dan bangunan\n- [ ] Catat kendaraan beserta tanggal pajak STNK\n- [ ] Catat rekening tabungan dan deposito (nama bank dan 4 digit terakhir saja)\n- [ ] Catat polis asuransi beserta tanggal jatuh temponya\n- [ ] Catat emas, investasi, dan usaha keluarga\n- [ ] Catat aset digital (nama platform dan lokasi informasi akses)\n- [ ] Hubungkan setiap aset dengan kontak terkait\n\n## Cara mengumpulkan dokumen\n\nKumpulkan dokumen penting di satu tempat yang aman dan diketahui setidaknya satu anggota keluarga tepercaya. Di aplikasi ini, catat di mana dokumen asli dan fotokopinya disimpan. Aplikasi tidak menyimpan berkas atau foto dokumen.\n\n### Dokumen yang umum diperlukan\n\n- Tanah dan bangunan: sertifikat tanah, PBG atau IMB, bukti bayar PBB.\n- Kendaraan: BPKB dan STNK.\n- Tabungan dan deposito: buku tabungan dan bilyet deposito.\n- Asuransi: polis asuransi.\n- Usaha: akta pendirian dan surat keterangan usaha.\n- Keluarga: kartu keluarga, akta nikah, akta kelahiran anak, dan KTP.\n\n- [ ] Kumpulkan dokumen asli di satu map atau brankas\n- [ ] Buat fotokopi dokumen penting dan simpan terpisah dari aslinya\n- [ ] Tandai status setiap dokumen di menu Dokumen\n- [ ] Catat lokasi penyimpanan setiap dokumen\n- [ ] Periksa dokumen yang masih \"Belum Ada\" dan rencanakan cara mendapatkannya\n\n## Hal yang perlu disiapkan keluarga\n\nPersiapan yang baik membuat keluarga tidak bingung saat harus mengurus sesuatu. Bicarakan secara terbuka dengan anggota keluarga yang akan terlibat.\n\n- Tentukan siapa yang mengetahui lokasi dokumen dan tandai di menu Keluarga dan Ahli Waris.\n- Tentukan siapa yang akan menjadi pelaksana atau penanggung jawab.\n- Simpan kontak penting seperti bank, asuransi, notaris, dan agen.\n- Cetak ringkasan dan simpan bersama dokumen penting.\n\n- [ ] Daftarkan anggota keluarga dan perannya\n- [ ] Pastikan minimal satu orang tepercaya tahu lokasi dokumen\n- [ ] Simpan kontak bank, asuransi, dan notaris\n- [ ] Cetak ringkasan dan simpan di tempat aman\n- [ ] Jadwalkan pembaruan data setiap 6 bulan\n\n## Kapan perlu konsultasi notaris\n\nNotaris atau PPAT dapat membantu untuk urusan yang membutuhkan akta resmi. Aplikasi ini tidak bisa menggantikan peran mereka.\n\n- Saat ingin membuat atau mengubah wasiat.\n- Saat ada pembagian waris, terutama jika melibatkan tanah atau bangunan.\n- Saat balik nama sertifikat tanah atau bangunan.\n- Saat mendirikan, mengubah, atau mengalihkan usaha.\n- Saat ada perbedaan pendapat dalam keluarga tentang pembagian aset.\n- Saat ragu apakah suatu dokumen cukup kuat secara hukum.\n\n- [ ] Simpan kontak notaris atau PPAT di Kontak Penting\n- [ ] Siapkan daftar pertanyaan sebelum bertemu notaris\n- [ ] Bawa fotokopi dokumen yang relevan saat konsultasi\n\n## Langkah umum jika pemilik meninggal\n\nChecklist berikut adalah langkah umum, bukan nasihat hukum. Urutan dan persyaratan dapat berbeda menurut daerah, lembaga, agama, dan hukum yang berlaku bagi keluarga. Konfirmasi langsung ke lembaga terkait dan konsultasikan dengan notaris.\n\n- [ ] Urus surat keterangan kematian dari kelurahan atau rumah sakit\n- [ ] Perbarui kartu keluarga di Dukcapil\n- [ ] Kumpulkan dokumen identitas almarhum dan ahli waris\n- [ ] Urus surat keterangan ahli waris sesuai ketentuan yang berlaku\n- [ ] Hubungi bank untuk menanyakan prosedur rekening almarhum\n- [ ] Hubungi perusahaan asuransi untuk klaim polis\n- [ ] Cek kendaraan dan rencanakan balik nama di Samsat\n- [ ] Konsultasikan pembagian waris dan balik nama tanah dengan notaris atau PPAT\n- [ ] Perbarui status aset di aplikasi (Belum Diklaim, Sudah Diserahkan)\n- [ ] Simpan semua bukti pengurusan bersama dokumen asli\n\n## Cara menjaga data tetap aman\n\nData aplikasi hanya tersimpan di browser pada perangkat ini. Aplikasi tidak memiliki server dan tidak mengirim data ke mana pun. Artinya keamanan data juga bergantung pada perangkat Anda.\n\n- Gunakan kunci layar pada perangkat.\n- Aktifkan \"Enkripsi data dengan PIN\" di Pengaturan agar data hanya bisa dibuka dengan PIN. Pilih PIN yang panjang (8+ karakter campuran) dan simpan di tempat aman. Jika PIN lupa, data hanya bisa dipulihkan dari backup.\n- Jangan menyimpan nomor rekening, nomor kartu, password, PIN, seed phrase, atau kunci privat.\n- Buat backup JSON secara berkala dan simpan di tempat aman, misalnya flashdisk di brankas.\n- Ingat bahwa menghapus cache atau data browser juga menghapus data aplikasi.\n- Hati-hati saat memakai Asisten Salin-Tempel: periksa isi prompt sebelum menempelkannya ke layanan AI.\n\n- [ ] Aktifkan kunci layar perangkat\n- [ ] Pertimbangkan mengaktifkan enkripsi data dengan PIN\n- [ ] Buat backup JSON pertama\n- [ ] Simpan berkas backup di tempat aman\n- [ ] Periksa bahwa tidak ada password atau nomor lengkap di catatan\n";
 (function () {
@@ -1380,15 +1443,39 @@ function dialog(opts) {
   });
 }
 
+// Tampilan tertanam (mis. halaman claude.ai): unduhan dan cetak bisa diblokir oleh frame.
+var EMBED = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+var DL = null; // kemampuan "downloads" dari host, jika tersedia
+/**
+ * Unduh berkas. Mengembalikan true jika berkas diserahkan untuk diunduh,
+ * false jika ditampilkan sebagai teks untuk disalin (tampilan tertanam tanpa unduhan).
+ */
 function download(filename, content, mime) {
+  if (DL) {
+    DL.save({ filename: filename, data: content }).catch(function () { toast('Unduhan dibatalkan atau tidak diizinkan.'); });
+    return true;
+  }
+  if (EMBED) { dialogSalin(filename, content); return false; }
   var blob = new Blob([content], { type: mime });
   var url = URL.createObjectURL(blob);
   var a = h('a', { href: url, download: filename, class: 'sr-only' });
   document.body.appendChild(a);
   a.click();
   setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  return true;
 }
 function fileStamp() { return today(); }
+function dialogSalin(filename, content) {
+  var ta = h('textarea', { id: 'dlg-salin', rows: 10, readonly: true, 'aria-label': 'Isi berkas ' + filename });
+  ta.value = content;
+  var info = h('p', { class: 'small' }, 'Tampilan ini tidak mengizinkan unduhan. Salin isinya, tempel ke aplikasi catatan atau editor teks, lalu simpan dengan nama ', h('strong', null, filename), '.');
+  dialog({ judul: 'Salin isi berkas', isi: h('div', null, info, ta), ok: '📋 Salin', batal: 'Tutup' }).then(function (ok) {
+    if (!ok) return;
+    var done = function () { toast('Isi berkas disalin.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(content).then(done, function () { fallbackCopy(content) ? done() : toast('Gagal menyalin. Pilih teks secara manual.'); });
+    else if (fallbackCopy(content)) done(); else toast('Gagal menyalin. Pilih teks secara manual.');
+  });
+}
 
 // =============================================================================
 // Penyimpanan
@@ -1408,7 +1495,7 @@ function load() {
   try { raw = localStorage.getItem(KEY); } catch (e) { muatGagal = 'Penyimpanan lokal tidak tersedia di browser ini. Data tidak akan tersimpan.'; }
   if (raw === null) {
     if (SEED) {
-      var r = C.validateImport(SEED);
+      var r = C.validateImport(C.shiftSeedDates(SEED, today()));
       if (r.ok) {
         DB = r.data;
         try { localStorage.setItem(KEY_SUMBER, SEED_SUMBER || 'seed'); } catch (e) { /* abaikan */ }
@@ -1548,12 +1635,20 @@ function toggleDrawer(force) {
   if (open) { var first = $('sidebar').querySelector('a'); if (first) first.focus(); }
 }
 
+// Rute disimpan di CUR agar navigasi tetap berjalan di frame sandbox (mis. halaman claude.ai)
+// yang menolak atau memuat ulang saat hash URL diubah.
+var CUR = location.hash || '#/beranda';
 function route() {
-  var raw = location.hash.replace(/^#\/?/, '');
+  var raw = CUR.replace(/^#\/?/, '');
   var parts = raw.split('/').map(function (p) { try { return decodeURIComponent(p); } catch (e) { return p; } });
   return { page: parts[0] || 'beranda', a: parts[1] || '', b: parts[2] || '' };
 }
-function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
+function go(hash) {
+  CUR = hash;
+  try { if (location.hash !== hash) history.pushState(null, '', hash); } catch (e) { /* frame tidak mengizinkan; rute tetap di CUR */ }
+  render();
+}
+function onUrlChange() { var hsh = location.hash || '#/beranda'; if (hsh === CUR) return; CUR = hsh; render(); }
 
 var VIEWS = {};
 var lastPage = null;
@@ -1573,8 +1668,8 @@ function render() {
   var fam = DB.pengaturan.namaKeluarga;
   document.title = title + ' · Peta Aset Keluarga' + (fam ? ' ' + fam : '');
   toggleDrawer(false);
-  if (lastPage !== null && lastPage !== location.hash) { main.focus({ preventScroll: true }); window.scrollTo(0, 0); }
-  lastPage = location.hash;
+  if (lastPage !== null && lastPage !== CUR) { main.focus({ preventScroll: true }); window.scrollTo(0, 0); }
+  lastPage = CUR;
 }
 function applySettings() {
   var p = DB.pengaturan;
@@ -1688,7 +1783,16 @@ function historyBlock(entitas, id) {
 VIEWS.beranda = function (main) {
   var t = today();
   var fam = DB.pengaturan.namaKeluarga;
-  main.appendChild(h('h2', null, fam ? 'Beranda Keluarga ' + fam : 'Beranda'));
+  var jam = new Date().getHours();
+  var salam = jam < 11 ? 'Selamat pagi' : jam < 15 ? 'Selamat siang' : jam < 18 ? 'Selamat sore' : 'Selamat malam';
+  var nAktif = DB.aset.filter(function (a) { return a.status !== 'Tidak Aktif'; }).length;
+  main.appendChild(h('section', { class: 'hero', 'aria-labelledby': 'hero-h' },
+    h('h2', { id: 'hero-h' }, salam + (fam ? ', Keluarga ' + fam : '') + ' 👋'),
+    h('p', null, DB.aset.length
+      ? 'Ada ' + nAktif + ' aset yang masih berjalan dan ' + DB.dokumen.length + ' dokumen tercatat. Semua tersimpan aman di perangkat ini.'
+      : 'Mulai dengan mencatat aset pertama keluarga. Cukup isi nama, kategori, dan di mana dokumennya disimpan.'),
+    h('div', { class: 'row no-print' },
+      link('#/aset/baru', '＋ Tambah Aset', 'btn primary'), link('#/kontak/baru', '＋ Tambah Kontak', 'btn'), link('#/panduan', '📘 Buka Panduan', 'btn'))));
   if (muatGagal) main.appendChild(h('div', { class: 'banner danger', role: 'alert' }, muatGagal));
   var src = sumber();
   if (src === 'contoh') {
@@ -1713,18 +1817,15 @@ VIEWS.beranda = function (main) {
   var maxCnt = Math.max.apply(null, C.KATEGORI_ASET.map(function (k) { return cnt[k]; }).concat([1]));
   var comp = C.completeness(DB.aset);
 
-  main.appendChild(h('div', { class: 'row no-print' },
-    link('#/aset/baru', '＋ Tambah Aset', 'btn primary'), link('#/kontak/baru', '＋ Tambah Kontak', 'btn'), link('#/panduan', '📘 Buka Panduan', 'btn')));
 
   var grid = h('div', { class: 'grid g3' });
-  grid.style.marginTop = '1rem';
-  grid.appendChild(h('div', { class: 'card' }, h('div', { class: 'muted small' }, 'Jumlah aset'), h('div', { class: 'big' }, String(DB.aset.length)),
-    h('div', { class: 'small muted' }, aktif.length + ' masih aktif/berjalan')));
-  var nilaiEl = h('div', { class: 'big' }, C.formatRupiah(C.totalNilai(DB.aset)));
-  grid.appendChild(h('div', { class: 'card' }, h('div', { class: 'muted small' }, 'Total perkiraan nilai'), nilaiEl,
-    h('div', { class: 'small muted' }, 'Tidak termasuk aset Tidak Aktif')));
-  grid.appendChild(h('div', { class: 'card' }, h('div', { class: 'muted small' }, 'Kelengkapan data'), h('div', { class: 'big' }, comp.total + '%'),
-    h('div', { class: 'small muted' }, 'Dari ' + comp.jumlah + ' aset yang masih berjalan')));
+  function stat(ico, cls, label, value, sub) {
+    return h('div', { class: 'card stat' }, h('div', { class: 'stat-ico ' + (cls || ''), 'aria-hidden': 'true' }, ico),
+      h('div', null, h('div', { class: 'muted small' }, label), h('div', { class: 'big' }, value), h('div', { class: 'small muted' }, sub)));
+  }
+  grid.appendChild(stat('💼', '', 'Jumlah aset', String(DB.aset.length), aktif.length + ' masih aktif/berjalan'));
+  grid.appendChild(stat('💰', 'amber', 'Total perkiraan nilai', C.formatRupiah(C.totalNilai(DB.aset)), 'Tidak termasuk aset Tidak Aktif'));
+  grid.appendChild(stat('✅', '', 'Kelengkapan data', comp.total + '%', 'Dari ' + comp.jumlah + ' aset yang masih berjalan'));
   main.appendChild(grid);
 
   var g2 = h('div', { class: 'grid g2' }); g2.style.marginTop = '1rem';
@@ -2193,8 +2294,7 @@ var uiPengingat = { tab: '30' };
 function downloadICS(list) {
   var ics = C.buildICS(list.filter(function (a) { return a.jatuhTempo; }).map(C.asetToEvent), { now: new Date(), namaKalender: 'Jatuh Tempo Aset' + (DB.pengaturan.namaKeluarga ? ' ' + DB.pengaturan.namaKeluarga : '') });
   var name = list.length === 1 ? 'jatuh-tempo-' + (C.slugify(list[0].nama) || 'aset') + '.ics' : 'jatuh-tempo-semua-aset-' + fileStamp() + '.ics';
-  download(name, ics, 'text/calendar;charset=utf-8');
-  toast('File kalender diunduh. Buka file untuk menambahkannya ke kalender.');
+  if (download(name, ics, 'text/calendar;charset=utf-8')) toast('File kalender diunduh. Buka file untuk menambahkannya ke kalender.');
 }
 VIEWS.pengingat = function (main) {
   var t = today();
@@ -2395,7 +2495,10 @@ VIEWS.ringkasan = function (main) {
   var cn = checkbox('Tampilkan perkiraan nilai aset (disembunyikan secara default)', uiRingkas.nilai);
   cn.input.addEventListener('change', function () { uiRingkas.nilai = cn.input.checked; draw(); });
   opts.appendChild(cn);
-  opts.appendChild(h('div', { class: 'row' }, btn('🖨️ Cetak / Simpan sebagai PDF', function () { window.print(); }, 'primary'),
+  opts.appendChild(h('div', { class: 'row' }, btn('🖨️ Cetak / Simpan sebagai PDF', function () {
+    if (EMBED) toast('Jika dialog cetak tidak muncul, buka aplikasi sebagai berkas tersendiri untuk mencetak.');
+    try { window.print(); } catch (e) { /* diblokir oleh frame */ }
+  }, 'primary'),
     h('span', { class: 'help' }, 'Pada dialog cetak, pilih "Simpan sebagai PDF" untuk membuat berkas PDF.')));
   main.appendChild(opts);
   var rep = h('article', { class: 'card report', 'aria-label': 'Pratinjau ringkasan' });
@@ -2490,13 +2593,12 @@ VIEWS.ekspor = function (main) {
     if (cEnc && cEnc.input.checked) {
       bkBtn.disabled = true;
       C.encryptWithKey(data, KS, { aplikasi: 'Peta Aset Keluarga', tanggal_ekspor: data.tanggal_ekspor }).then(function (env) {
-        download('peta-aset-keluarga-backup-' + stamp + '-terenkripsi.json', JSON.stringify(env, null, 2), 'application/json;charset=utf-8');
-        selesai('Backup terenkripsi diunduh. Untuk mengimpor, diperlukan PIN yang sama.');
+        if (download('peta-aset-keluarga-backup-' + stamp + '-terenkripsi.json', JSON.stringify(env, null, 2), 'application/json;charset=utf-8')) selesai('Backup terenkripsi diunduh. Untuk mengimpor, diperlukan PIN yang sama.');
+        else bkBtn.disabled = false;
       }, function () { bkBtn.disabled = false; toast('Gagal mengenkripsi backup.'); });
       return;
     }
-    download('peta-aset-keluarga-backup-' + stamp + '.json', JSON.stringify(data, null, 2), 'application/json;charset=utf-8');
-    selesai('Backup diunduh.');
+    if (download('peta-aset-keluarga-backup-' + stamp + '.json', JSON.stringify(data, null, 2), 'application/json;charset=utf-8')) selesai('Backup diunduh.');
   }, 'primary');
   main.appendChild(h('section', { class: 'card' }, h('h3', null, 'Backup lengkap (JSON)'),
     h('p', null, 'Satu berkas berisi semua data, termasuk versi skema dan tanggal ekspor. Simpan di tempat aman (flashdisk, folder pribadi). PIN tidak pernah ikut diekspor.'),
@@ -2507,8 +2609,7 @@ VIEWS.ekspor = function (main) {
   csv.style.marginTop = '1rem';
   csv.appendChild(h('div', { class: 'row' }, Object.keys(CSV_DEF).map(function (k) {
     return btn(CSV_DEF[k].judul + ' (' + DB[k].length + ')', function () {
-      download('peta-aset-' + k + '-' + fileStamp() + '.csv', C.toCSV(DB[k], CSV_DEF[k].kolom), 'text/csv;charset=utf-8');
-      toast('CSV ' + CSV_DEF[k].judul + ' diunduh.');
+      if (download('peta-aset-' + k + '-' + fileStamp() + '.csv', C.toCSV(DB[k], CSV_DEF[k].kolom), 'text/csv;charset=utf-8')) toast('CSV ' + CSV_DEF[k].judul + ' diunduh.');
     });
   })));
   main.appendChild(csv);
@@ -2999,11 +3100,27 @@ function init() {
   });
   window.addEventListener('beforeunload', function (e) { if (tulisTertunda > 0) { e.preventDefault(); e.returnValue = ''; } });
   lockIfNeeded(function () {
-    window.addEventListener('hashchange', render);
+    window.addEventListener('hashchange', onUrlChange);
+    window.addEventListener('popstate', onUrlChange);
+    // Tautan internal (#/...) ditangani aplikasi sendiri.
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href^="#/"]');
+      if (!a) return;
+      e.preventDefault();
+      go(a.getAttribute('href'));
+    });
     render();
   });
+  // Kemampuan unduhan dari host (halaman claude.ai), jika tersedia.
+  if (window.claude && typeof window.claude.use === 'function') {
+    try { window.claude.use('downloads').then(function (d) { DL = d || null; }, function () { /* tidak tersedia */ }); } catch (e) { /* abaikan */ }
+  }
+  if (EMBED) {
+    $('local-note').appendChild(document.createTextNode(' Anda membuka versi pratinjau di dalam halaman lain: data mungkin tidak tersimpan permanen, dan cetak serta mode offline bisa tidak tersedia. Untuk pemakaian sehari-hari, gunakan berkas aplikasi tersendiri.'));
+  }
   // Service worker opsional (Fase 2): hanya saat disajikan lewat http(s) dan sw.js tersedia.
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  if (!EMBED && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(function () { /* tidak wajib */ });
   }
 }

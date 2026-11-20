@@ -18,6 +18,8 @@ try { playwright = require('playwright'); } catch {
   process.exit(2);
 }
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const C = require(join(ROOT, 'src', 'core.js'));
+const TODAY = C.todayISO(new Date()); // semua ekspektasi tanggal relatif terhadap hari ini
 const SHOTS = process.argv[2] || null;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 const DIST = pathToFileURL(join(ROOT, 'dist', 'distribusi.html')).href;
@@ -121,7 +123,7 @@ try {
   await page.getByLabel('Perkiraan nilai (Rp)').fill('250.000.000');
   await page.getByLabel('Catatan').fill('Kontrak 2 tahun <b>tebal</b> <img src=x onerror=alert(1)>');
   await refInput.fill('**99');
-  await page.getByLabel('Tanggal jatuh tempo').fill('2026-12-10');
+  await page.getByLabel('Tanggal jatuh tempo').fill(C.addDays(TODAY, 20));
   await page.getByLabel('Kategori').selectOption('Rumah dan Bangunan');
   await page.getByLabel(/Bank Fiktif/).check();
   await page.click('button:has-text("Simpan aset")');
@@ -178,7 +180,8 @@ try {
   await page.click('[role=tab]:has-text("Lewat")');
   await page.click('main button:has-text("Sudah diurus")');
   const nd = await page.getByLabel('Tanggal jatuh tempo baru').inputValue();
-  check('Pengingat: usulan tanggal baru = +1 tahun', nd === '2027-11-10', nd);
+  const ndExpect = C.suggestNextDue(C.addDays(TODAY, -10), TODAY); // deposito contoh: lewat 10 hari
+  check('Pengingat: usulan tanggal baru = +1 tahun', nd === ndExpect, nd);
   await page.click('button:has-text("Simpan tanggal baru")');
   check('Pengingat: setelah diurus, tab Lewat kosong', /Lewat \(0\)/.test(await page.locator('[role=tab]').first().innerText()));
   await page.click('[role=tab]:has-text("Semua")');
@@ -475,6 +478,43 @@ try {
   });
   check('Aksesibilitas: semua input form aset punya label', unlabeled === 0, unlabeled + ' tanpa label');
   await ctx2.close();
+
+  // ---------------------------------------------------------------- tanggal di masa depan
+  const ctxF = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const pF = await ctxF.newPage();
+  watch(pF, 'masa-depan');
+  const future = new Date(new Date().getFullYear() + 2, 5, 15, 10, 0, 0);
+  if (pF.clock) await pF.clock.setFixedTime(future);
+  await pF.goto(DIST + '#/pengingat');
+  await pF.waitForSelector('[role=tab]');
+  const tabsF = await pF.locator('[role=tab]').allInnerTexts();
+  check('Data contoh tetap relevan ' + C.todayISO(future) + ': jatuh tempo digeser relatif hari itu', !!pF.clock && /Lewat \(1\)/.test(tabsF[0]) && /30 hari \(1\)/.test(tabsF[1]), tabsF.join(' | '));
+  await ctxF.close();
+
+  // ---------------------------------------------------------------- tampilan tertanam (seperti claude.ai)
+  const harnessDir = join(tmpdir(), 'pak-embed'); mkdirSync(harnessDir, { recursive: true });
+  const harness = join(harnessDir, 'harness.html');
+  writeFileSync(harness, `<!DOCTYPE html><title>uji</title><iframe id="f" sandbox="allow-scripts allow-forms allow-modals allow-popups" style="width:1200px;height:860px" src="${pathToFileURL(join(ROOT, 'dist', 'artifact.html')).href}"></iframe>`);
+  const ctxE = await browser.newContext({ viewport: { width: 1240, height: 900 } });
+  const pE = await ctxE.newPage();
+  const embErr = [];
+  pE.on('pageerror', (e) => embErr.push(e.message));
+  pE.on('request', (r) => { if (!/^(file|data|blob|about):/.test(r.url())) externalRequests.push('tertanam: ' + r.url()); });
+  await pE.goto(pathToFileURL(harness).href);
+  const fr = pE.frameLocator('#f');
+  await fr.locator('main h2').first().waitFor();
+  check('Tertanam: aplikasi tampil meski localStorage diblokir sandbox', (await fr.locator('main').innerText()).includes('CONTOH'));
+  check('Tertanam: pemberitahuan versi pratinjau tampil', /versi pratinjau/.test(await fr.locator('#local-note').innerText()));
+  await fr.locator('#nav-list a[data-page=ekspor]').click();
+  await fr.locator('button:has-text("Unduh backup JSON")').click();
+  await fr.locator('dialog #dlg-salin').waitFor();
+  const salin = await fr.locator('dialog #dlg-salin').inputValue();
+  check('Tertanam: unduhan diganti dialog salin berisi backup JSON valid', JSON.parse(salin).versi_skema === 1 && JSON.parse(salin).aset.length === 8);
+  await fr.locator('dialog button:has-text("Tutup")').click();
+  await fr.locator('#nav-list a[data-page=pengingat]').click();
+  check('Tertanam: navigasi antarmenu berjalan', (await fr.locator('[role=tab]').count()) === 5);
+  check('Tertanam: tanpa error JavaScript', embErr.length === 0, embErr.join(' | '));
+  await ctxE.close();
 
   // ---------------------------------------------------------------- tampilan HP
   const ctx3 = await browser.newContext({ ...playwright.devices['Pixel 7'] });

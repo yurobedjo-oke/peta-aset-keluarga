@@ -482,3 +482,26 @@ describe('enkripsi data dengan PIN (AES-GCM + PBKDF2)', () => {
     assert.equal(env.format, C.FORMAT_TERENKRIPSI);
   });
 });
+
+describe('tanggal data contoh relatif terhadap hari ini', () => {
+  const seed = {
+    versi_skema: 1, tanggal_acuan: '2026-11-20',
+    aset: [{ id: 'a', jatuhTempo: '2026-11-10' }, { id: 'b', jatuhTempo: '2026-12-05' }, { id: 'c', jatuhTempo: '' }],
+    tugas: [{ id: 't', tenggat: '2027-01-15' }]
+  };
+  test('jarak ke hari ini tetap sama di tanggal berapa pun', () => {
+    for (const today of ['2026-11-20', '2027-03-01', '2028-02-29', '2031-12-31']) {
+      const out = C.shiftSeedDates(seed, today);
+      assert.equal(C.daysUntil(out.aset[0].jatuhTempo, today), -10, today);
+      assert.equal(C.daysUntil(out.aset[1].jatuhTempo, today), 15, today);
+      assert.equal(C.daysUntil(out.tugas[0].tenggat, today), 56, today);
+      assert.equal(out.aset[2].jatuhTempo, '');
+    }
+  });
+  test('tidak mengubah input; tanpa tanggal_acuan tidak digeser', () => {
+    C.shiftSeedDates(seed, '2027-05-05');
+    assert.equal(seed.aset[0].jatuhTempo, '2026-11-10');
+    const noRef = { aset: [{ jatuhTempo: '2026-11-10' }] };
+    assert.equal(C.shiftSeedDates(noRef, '2027-05-05'), noRef);
+  });
+});

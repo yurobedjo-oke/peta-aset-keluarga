@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { renderApp, buildCSP, safeJSON, checkContohMarked, buildAll } from '../build.mjs';
+import { renderApp, buildCSP, safeJSON, checkContohMarked, buildAll, CSP_TERTANAM } from '../build.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -37,6 +37,14 @@ describe('Content-Security-Policy', () => {
   test('CSP ditempatkan sebelum skrip dan style', () => {
     assert.ok(html.indexOf('Content-Security-Policy') < html.indexOf('<style>'));
     assert.ok(html.indexOf('Content-Security-Policy') < html.indexOf('<script>'));
+  });
+  test('varian tertanam tetap memblokir koneksi keluar', () => {
+    const emb = renderApp({ template, core, guide, seed: contoh, sumber: 'contoh', csp: 'tertanam' });
+    const c = emb.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+    assert.equal(c, CSP_TERTANAM);
+    assert.match(c, /connect-src 'none'/);
+    assert.match(c, /form-action 'none'/);
+    assert.ok(emb.includes('[CONTOH] Rumah Jl. Fiktif 12'));
   });
   test('buildCSP menolak template dengan lebih dari satu skrip', () => {
     assert.throws(() => buildCSP('<style></style><script></script><script></script>'));
@@ -101,6 +109,7 @@ describe('build dua varian', () => {
       assert.ok(existsSync(join(tmp, 'index.html')));
       assert.match(out[join(tmp, 'index.html')], /var SEED = null;/);
       assert.ok(out[join(tmp, 'dist', 'distribusi.html')].includes('[CONTOH] Rumah Jl. Fiktif 12'));
+      assert.ok(out[join(tmp, 'dist', 'distribusi.html')].includes('"tanggal_acuan":"2026-11-20"'), 'tanggal_acuan ikut disisipkan');
 
       writeFileSync(join(tmp, 'seed', 'personal.json'), JSON.stringify({
         versi_skema: 1,

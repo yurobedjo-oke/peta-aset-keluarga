@@ -1,0 +1,50 @@
+# Uji, build, dan terbitkan versi distribusi (data CONTOH fiktif) ke GitHub Pages.
+# Data pribadi tidak pernah ikut: seed/personal.json tidak ada di repo.
+name: Uji dan terbitkan ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  uji-dan-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tes unit
+        run: npm test
+      - name: Build
+        run: node build.mjs
+      - name: Siapkan situs
+        run: |
+          mkdir -p _site
+          cp dist/distribusi.html _site/index.html
+          cp dist/sw.js _site/sw.js
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  terbitkan:
+    needs: uji-dan-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

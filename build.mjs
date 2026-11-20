@@ -37,6 +37,14 @@ function sha256b64(text) {
 }
 
 /** Hitung CSP berbasis hash untuk satu-satunya <script> dan <style> inline. */
+/**
+ * CSP untuk tampilan tertanam (halaman claude.ai): host menyisipkan skrip runtime-nya sendiri,
+ * jadi script-src tidak dibatasi hash. Koneksi keluar tetap diblokir.
+ */
+export const CSP_TERTANAM = [
+  "connect-src 'none'", "object-src 'none'", "frame-src 'none'", "form-action 'none'", "base-uri 'none'"
+].join('; ');
+
 export function buildCSP(html) {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
   const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
@@ -81,11 +89,15 @@ function loadSeed(path, label) {
   }
   const r = Core.validateImport(raw);
   if (!r.ok) throw new Error(`${label} tidak valid:\n  - ${r.errors.join('\n  - ')}`);
+  if (raw.tanggal_acuan !== undefined) {
+    if (!Core.isValidISODate(raw.tanggal_acuan)) throw new Error(`${label}: tanggal_acuan harus berformat YYYY-MM-DD.`);
+    r.data.tanggal_acuan = raw.tanggal_acuan; // agar aplikasi bisa menggeser tanggal contoh relatif hari ini
+  }
   return r.data;
 }
 
 /** Sisipkan core, panduan, seed, dan CSP ke template. */
-export function renderApp({ template, core, guide, seed, sumber }) {
+export function renderApp({ template, core, guide, seed, sumber, csp = 'ketat' }) {
   if (/<\/script/i.test(core)) throw new Error('core.js tidak boleh mengandung "</script".');
   const replace = (html, token, value) => {
     if (!html.includes(token)) throw new Error(`Penanda ${token} tidak ditemukan di template.`);
@@ -96,7 +108,7 @@ export function renderApp({ template, core, guide, seed, sumber }) {
   html = replace(html, '/*@@SEED@@*/null', seed ? safeJSON(seed) : 'null');
   html = replace(html, '/*@@SEED_SUMBER@@*/""', safeJSON(sumber || ''));
   html = replace(html, '/*@@GUIDE@@*/""', safeJSON(guide));
-  html = replace(html, '@@CSP@@', buildCSP(html));
+  html = replace(html, '@@CSP@@', csp === 'tertanam' ? CSP_TERTANAM : buildCSP(html));
   if (/@@[A-Z_]+@@/.test(html)) throw new Error('Masih ada penanda build yang belum diganti.');
   return html;
 }
@@ -147,6 +159,7 @@ export function buildAll({ root = ROOT, outDir = join(ROOT, 'dist'), log = conso
     [join(root, 'index.html')]: renderApp({ template, core, guide, seed: null, sumber: '' }),
     [join(outDir, 'personal.html')]: renderApp({ template, core, guide, seed: personal, sumber: personal ? 'personal' : '' }),
     [join(outDir, 'distribusi.html')]: renderApp({ template, core, guide, seed: contoh, sumber: 'contoh' }),
+    [join(outDir, 'artifact.html')]: renderApp({ template, core, guide, seed: contoh, sumber: 'contoh', csp: 'tertanam' }),
     [join(outDir, 'sw.js')]: serviceWorker(Core.VERSI_APLIKASI)
   };
   for (const [path, content] of Object.entries(outputs)) writeFileSync(path, content, 'utf8');
@@ -155,6 +168,7 @@ export function buildAll({ root = ROOT, outDir = join(ROOT, 'dist'), log = conso
   log(`✔ index.html            (tanpa data)`);
   log(`✔ dist/personal.html    ${personal ? '(data pribadi: ' + count(personal) + ')' : '(seed/personal.json tidak ada — aplikasi kosong)'}`);
   log(`✔ dist/distribusi.html  (data CONTOH: ${count(contoh)})`);
+  log(`✔ dist/artifact.html    (data CONTOH, untuk tampilan tertanam/claude.ai)`);
   log(`✔ dist/sw.js            (service worker opsional)`);
   return outputs;
 }

@@ -59,11 +59,19 @@ npm run build
 | `index.html` | Aplikasi kosong |
 | `dist/distribusi.html` | Aplikasi + data contoh fiktif dari `seed/contoh.json`, aman untuk dibagikan |
 | `dist/personal.html` | Aplikasi + data dari `seed/personal.json` jika ada; jika tidak ada, aplikasinya kosong |
+| `dist/artifact.html` | Seperti distribusi, untuk tampilan tertanam (halaman claude.ai): CSP tetap memblokir koneksi keluar, tetapi tidak membatasi skrip runtime host |
 | `dist/sw.js` | Service worker opsional untuk akses offline saat disajikan lewat http/https |
+
+Tanggal jatuh tempo dan tenggat di data contoh ditulis relatif terhadap `tanggal_acuan` di `seed/contoh.json`. Saat dibuka, aplikasi menggesernya ke hari ini, sehingga contoh selalu memperlihatkan satu aset yang lewat jatuh tempo, satu yang jatuh tempo dalam 30 hari, dan seterusnya, kapan pun dibuka.
 
 Build memvalidasi setiap seed dengan validator yang sama dengan fitur impor. Build gagal jika seed tidak valid, atau jika ada entri contoh yang tidak bertanda "CONTOH". Data seed hanya dimuat saat `localStorage` di browser masih kosong; setelah itu data yang tersimpan di perangkat yang dipakai.
 
 Cukup buka berkas HTML langsung di browser (`file://`), tanpa server. Service worker hanya aktif jika berkas disajikan lewat http/https, misalnya dengan `python3 -m http.server` dari folder `dist`.
+
+## Versi online
+
+- **GitHub Pages:** workflow `.github/workflows/pages.yml` menjalankan tes, build, lalu menerbitkan `dist/distribusi.html` sebagai `index.html` setiap kali ada push ke `main`. Situs ini hanya berisi data CONTOH. Pengunjung yang mencatat data sendiri menyimpannya di browser masing-masing.
+- **Tampilan tertanam (claude.ai):** `dist/artifact.html` mendeteksi bahwa ia berjalan di dalam frame. Unduhan memakai kemampuan unduhan host jika tersedia; jika tidak, isi berkas ditampilkan untuk disalin. Cetak dan mode offline perlu dibuka sebagai berkas tersendiri.
 
 ## Menambahkan data pribadi tanpa ikut terunggah
 
