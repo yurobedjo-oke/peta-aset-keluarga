@@ -525,6 +525,10 @@ try {
   await p3.waitForSelector('main h2');
   check('HP: bottom bar tampil, sidebar tersembunyi', await p3.locator('#bottombar').isVisible() && !(await onScreen('#sidebar')));
   await shot(p3, '09-hp-beranda', { fullPage: false });
+  const vh = p3.viewportSize().height;
+  const statBox = await p3.locator('.stats .wide').boundingBox();
+  check('HP: total nilai terlihat di layar pertama tanpa menggulir', statBox && statBox.y + statBox.height <= vh - 60, statBox ? Math.round(statBox.y + statBox.height) + 'px dari ' + vh + 'px' : 'tidak ada');
+  check('HP: peringatan diringkas dalam satu kartu', (await p3.locator('main .banner').count()) === 0 && (await p3.locator('.note').count()) === 3);
   await p3.click('#menu-btn');
   await p3.waitForTimeout(300);
   check('HP: tombol Menu membuka laci navigasi', await onScreen('#sidebar'));

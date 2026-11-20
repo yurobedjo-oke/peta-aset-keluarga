@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-R/yRKiR8ZWbNBVX5W67UPPp2KOQ/8A/bDE7esLUdBYA='; style-src 'sha256-63eT6iTj/ocoBquZOkzq0DgALbO0s8LVm9SQPhhuvg8='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hGXhpG1GjG9qyWJYzXLr32XMuwXQAxtZhxz29ZzwDRc='; style-src 'sha256-zcSfa3aTX5IudMgcpEPspB+mhdBxz1JGMhD7NvwoGeM='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>Peta Aset Keluarga</title>
@@ -177,6 +177,18 @@ th{background:var(--surface2)}
 .stat>div:last-child{min-width:0}
 .items .card{transition:box-shadow .15s,transform .15s}
 .items .card:hover{box-shadow:0 10px 28px rgba(31,42,46,.1);transform:translateY(-1px)}
+.notes{padding:.35rem 1.1rem;margin-bottom:1rem}
+.note-list{list-style:none;margin:0;padding:0}
+.note{display:flex;gap:.7rem;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:none}
+.note-ico{flex:none;width:2.1rem;height:2.1rem;border-radius:10px;display:grid;place-items:center;background:var(--primary-soft)}
+.note.warn .note-ico{background:var(--warn-soft)}
+.note.danger .note-ico{background:var(--danger-soft)}
+.note.danger strong{color:var(--danger)}
+.note-text{flex:1;min-width:0}
+.note-go{flex:none;font-weight:700;white-space:nowrap;text-decoration:none;padding:.35rem .75rem;border-radius:999px;background:var(--primary-soft);color:var(--primary)}
+.note-go:hover{text-decoration:underline}
+.stats{margin-bottom:0}
 @media (max-width:820px){
   .app{grid-template-columns:1fr}
   #sidebar{position:fixed;left:0;top:0;bottom:0;width:min(290px,85vw);z-index:40;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.3)}
@@ -185,6 +197,20 @@ th{background:var(--surface2)}
   .topbar{padding:.6rem .8rem;flex-wrap:wrap}
   .hero{padding:1.25rem 1.1rem;border-radius:18px}
   .hero h2{font-size:1.35rem}
+  .hero{padding:1.1rem 1rem 1rem}
+  .hero p{display:none}
+  .hero h2{margin-bottom:.8rem}
+  .hero .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}
+  .hero .btn{justify-content:center;text-align:center;font-size:.8rem;padding:.45rem .3rem;min-height:2.6rem;line-height:1.2}
+  .note-detail{display:none}
+  .note{font-size:.9rem;padding:.5rem 0}
+  .stats{grid-template-columns:1fr 1fr;gap:.6rem}
+  .stats .wide{grid-column:1/-1;order:-1}
+  .stats .stat:not(.wide) .stat-ico{display:none}
+  .stat{padding:.8rem .9rem;gap:.6rem}
+  .stat-ico{width:2.4rem;height:2.4rem;font-size:1.15rem;border-radius:12px}
+  .stat .big{font-size:1.25rem}
+  .local-note{font-size:.75rem;padding:.3rem .8rem}
   .topbar form{width:100%}
   .topbar input{width:100%;max-width:none}
   main{padding:1rem .8rem}
@@ -1794,23 +1820,31 @@ VIEWS.beranda = function (main) {
     h('div', { class: 'row no-print' },
       link('#/aset/baru', '＋ Tambah Aset', 'btn primary'), link('#/kontak/baru', '＋ Tambah Kontak', 'btn'), link('#/panduan', '📘 Buka Panduan', 'btn'))));
   if (muatGagal) main.appendChild(h('div', { class: 'banner danger', role: 'alert' }, muatGagal));
-  var src = sumber();
-  if (src === 'contoh') {
-    main.appendChild(h('div', { class: 'banner info' }, 'Anda sedang melihat data CONTOH fiktif. Untuk mulai mencatat data sendiri, buka ',
-      link('#/pengaturan', 'Pengaturan'), ' lalu pilih Reset semua data.'));
+  // Satu kartu "Perlu perhatian" berisi baris-baris pendek (ringkas di HP).
+  var notes = [];
+  if (sumber() === 'contoh') {
+    notes.push({ cls: 'info', ico: '🧪', teks: ['Ini data CONTOH fiktif.'], go: link('#/pengaturan', 'Pakai data sendiri', 'note-go') });
   }
   var due = C.assetsNeedingAttention(DB.aset, t, 30);
   if (due.length) {
     var lewat = due.filter(function (a) { return C.daysUntil(a.jatuhTempo, t) < 0; }).length;
-    main.appendChild(h('div', { class: 'banner ' + (lewat ? 'danger' : 'warn'), role: 'status' },
-      h('strong', null, '⏰ ' + due.length + ' aset perlu diurus' + (lewat ? ' (' + lewat + ' sudah lewat jatuh tempo)' : ' dalam 30 hari') + '. '),
-      due.slice(0, 3).map(function (a, i) { return [i ? ', ' : '', link('#/aset/' + encodeURIComponent(a.id), a.nama), ' (' + C.relativeDueLabel(a.jatuhTempo, t) + ')']; }),
-      due.length > 3 ? ', …' : '', ' ', link('#/pengingat', 'Lihat pengingat')));
+    notes.push({ cls: lewat ? 'danger' : 'warn', ico: '⏰',
+      teks: [h('strong', null, due.length + ' aset perlu diurus'), lewat ? ' · ' + lewat + ' sudah lewat jatuh tempo' : ' dalam 30 hari',
+        h('span', { class: 'note-detail' }, ': ', due.slice(0, 3).map(function (a, i) { return [i ? ', ' : '', link('#/aset/' + encodeURIComponent(a.id), a.nama)]; }), due.length > 3 ? ', …' : '')],
+      go: link('#/pengingat', 'Lihat', 'note-go') });
   }
   if (hasAnyData() && C.backupOverdue(DB.backup, t, 30)) {
-    main.appendChild(h('div', { class: 'banner warn', role: 'status' },
-      '💾 ' + (DB.backup.terakhir ? 'Backup terakhir ' + C.daysSince(DB.backup.terakhir, t) + ' hari yang lalu.' : 'Anda belum pernah membuat backup.'),
-      ' Data hanya ada di perangkat ini; jika cache browser dihapus, data hilang. ', link('#/ekspor', 'Buat backup sekarang')));
+    notes.push({ cls: 'warn', ico: '💾',
+      teks: [DB.backup.terakhir ? 'Backup terakhir ' + C.daysSince(DB.backup.terakhir, t) + ' hari lalu.' : 'Anda belum pernah membuat backup.',
+        h('span', { class: 'note-detail' }, ' Jika data browser dihapus, data ikut hilang.')],
+      go: link('#/ekspor', 'Backup', 'note-go') });
+  }
+  if (notes.length) {
+    main.appendChild(h('section', { class: 'card notes', 'aria-labelledby': 'h-notes', role: 'status' },
+      h('h3', { id: 'h-notes', class: 'sr-only' }, 'Perlu perhatian'),
+      h('ul', { class: 'note-list' }, notes.map(function (n) {
+        return h('li', { class: 'note ' + n.cls }, h('span', { class: 'note-ico', 'aria-hidden': 'true' }, n.ico), h('span', { class: 'note-text' }, n.teks), n.go);
+      }))));
   }
   var aktif = DB.aset.filter(function (a) { return a.status !== 'Tidak Aktif'; });
   var cnt = C.countByKategori(DB.aset);
@@ -1818,13 +1852,13 @@ VIEWS.beranda = function (main) {
   var comp = C.completeness(DB.aset);
 
 
-  var grid = h('div', { class: 'grid g3' });
-  function stat(ico, cls, label, value, sub) {
-    return h('div', { class: 'card stat' }, h('div', { class: 'stat-ico ' + (cls || ''), 'aria-hidden': 'true' }, ico),
+  var grid = h('div', { class: 'grid g3 stats' });
+  function stat(ico, cls, label, value, sub, extra) {
+    return h('div', { class: 'card stat ' + (extra || '') }, h('div', { class: 'stat-ico ' + (cls || ''), 'aria-hidden': 'true' }, ico),
       h('div', null, h('div', { class: 'muted small' }, label), h('div', { class: 'big' }, value), h('div', { class: 'small muted' }, sub)));
   }
   grid.appendChild(stat('💼', '', 'Jumlah aset', String(DB.aset.length), aktif.length + ' masih aktif/berjalan'));
-  grid.appendChild(stat('💰', 'amber', 'Total perkiraan nilai', C.formatRupiah(C.totalNilai(DB.aset)), 'Tidak termasuk aset Tidak Aktif'));
+  grid.appendChild(stat('💰', 'amber', 'Total perkiraan nilai', C.formatRupiah(C.totalNilai(DB.aset)), 'Tidak termasuk aset Tidak Aktif', 'wide'));
   grid.appendChild(stat('✅', '', 'Kelengkapan data', comp.total + '%', 'Dari ' + comp.jumlah + ' aset yang masih berjalan'));
   main.appendChild(grid);
 
