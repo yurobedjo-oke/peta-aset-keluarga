@@ -90,13 +90,15 @@ Checklist berikut adalah langkah umum, bukan nasihat hukum. Urutan dan persyarat
 
 Data aplikasi hanya tersimpan di browser pada perangkat ini. Aplikasi tidak memiliki server dan tidak mengirim data ke mana pun. Artinya keamanan data juga bergantung pada perangkat Anda.
 
-- Gunakan kunci layar pada perangkat, dan aktifkan PIN aplikasi jika perangkat dipakai bersama.
+- Gunakan kunci layar pada perangkat.
+- Aktifkan "Enkripsi data dengan PIN" di Pengaturan agar data hanya bisa dibuka dengan PIN. Pilih PIN yang panjang (8+ karakter campuran) dan simpan di tempat aman. Jika PIN lupa, data hanya bisa dipulihkan dari backup.
 - Jangan menyimpan nomor rekening, nomor kartu, password, PIN, seed phrase, atau kunci privat.
 - Buat backup JSON secara berkala dan simpan di tempat aman, misalnya flashdisk di brankas.
 - Ingat bahwa menghapus cache atau data browser juga menghapus data aplikasi.
 - Hati-hati saat memakai Asisten Salin-Tempel: periksa isi prompt sebelum menempelkannya ke layanan AI.
 
 - [ ] Aktifkan kunci layar perangkat
+- [ ] Pertimbangkan mengaktifkan enkripsi data dengan PIN
 - [ ] Buat backup JSON pertama
 - [ ] Simpan berkas backup di tempat aman
 - [ ] Periksa bahwa tidak ada password atau nomor lengkap di catatan

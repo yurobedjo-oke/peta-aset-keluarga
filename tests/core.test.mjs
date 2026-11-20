@@ -404,3 +404,81 @@ describe('deteksi data sensitif', () => {
     assert.equal(C.detectSensitive(''), '');
   });
 });
+
+describe('enkripsi data dengan PIN (AES-GCM + PBKDF2)', () => {
+  const data = { versi_skema: 1, aset: [{ id: 'a1', nama: 'Rumah Rahasia', kategori: 'Tanah' }] };
+  const fast = { iterasi: 2000 }; // iterasi kecil agar tes cepat; aplikasi memakai 600.000
+
+  test('validatePassphrase: minimal 6, peringatan untuk PIN lemah', () => {
+    assert.equal(C.validatePassphrase('12345').ok, false);
+    assert.equal(C.validatePassphrase(' abcdef').ok, false);
+    assert.equal(C.validatePassphrase('x'.repeat(129)).ok, false);
+    const pin = C.validatePassphrase('246813');
+    assert.equal(pin.ok, true);
+    assert.equal(pin.lemah, true);
+    assert.match(pin.saran, /lemah/);
+    assert.equal(C.validatePassphrase('aaaaaaaaaaaaaaa').lemah, true);
+    assert.equal(C.validatePassphrase('Melati12rumah').lemah, false);
+    assert.equal(C.validatePassphrase('kebun teh di bukit hijau').lemah, false);
+  });
+
+  test('enkripsi lalu dekripsi kembali ke data semula; tidak ada teks biasa di amplop', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const env = await C.encryptWithKey(data, ks);
+    assert.equal(C.isEncryptedEnvelope(env), true);
+    assert.equal(env.kdf.iterasi, 2000);
+    assert.ok(!JSON.stringify(env).includes('Rumah Rahasia'));
+    const out = await C.decryptEnvelope(env, 'Melati12rumah');
+    assert.deepEqual(out.data, data);
+    assert.deepEqual(await C.decryptWithKey(env, out.ks), data);
+  });
+
+  test('PIN salah ditolak', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const env = await C.encryptWithKey(data, ks);
+    await assert.rejects(C.decryptEnvelope(env, 'salah123'), /KATA_SANDI_SALAH/);
+  });
+
+  test('amplop yang diubah (data, iv, atau parameter KDF) ditolak', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const env = await C.encryptWithKey(data, ks);
+    const bytes = C.b64ToBytes(env.data); bytes[0] ^= 1;
+    await assert.rejects(C.decryptWithKey({ ...env, data: C.bytesToB64(bytes) }, ks), /KATA_SANDI_SALAH/);
+    const iv = C.b64ToBytes(env.cipher.iv); iv[0] ^= 1;
+    await assert.rejects(C.decryptWithKey({ ...env, cipher: { ...env.cipher, iv: C.bytesToB64(iv) } }, ks), /KATA_SANDI_SALAH/);
+    // Iterasi diturunkan penyerang: AAD tidak cocok, gagal
+    await assert.rejects(C.decryptWithKey({ ...env, kdf: { ...env.kdf, iterasi: 1000 } }, ks), /KATA_SANDI_SALAH/);
+  });
+
+  test('IV dan garam acak: dua enkripsi tidak pernah sama', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const a = await C.encryptWithKey(data, ks);
+    const b = await C.encryptWithKey(data, ks);
+    assert.notEqual(a.cipher.iv, b.cipher.iv);
+    assert.notEqual(a.data, b.data);
+    const ks2 = await C.deriveKeyState('Melati12rumah', fast);
+    assert.notEqual(ks.garam, ks2.garam);
+  });
+
+  test('isEncryptedEnvelope menolak bentuk yang tidak valid', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const env = await C.encryptWithKey(data, ks);
+    for (const mut of [
+      (e) => { e.format = 'lain'; }, (e) => { e.versi_enkripsi = 2; }, (e) => { e.kdf.iterasi = 10; },
+      (e) => { e.kdf.garam = 'AAAA'; }, (e) => { e.cipher.iv = C.bytesToB64(new Uint8Array(8)); },
+      (e) => { e.data = '!!!'; }, (e) => { e.cipher.nama = 'AES-CBC'; }
+    ]) {
+      const e = structuredClone(env); mut(e);
+      assert.equal(C.isEncryptedEnvelope(e), false);
+    }
+    assert.equal(C.isEncryptedEnvelope(data), false);
+    assert.equal(C.validateImport(env).ok, false, 'amplop tidak lolos sebagai data biasa');
+  });
+
+  test('field tambahan (mis. tanggal_ekspor) disertakan tanpa menimpa field inti', async () => {
+    const ks = await C.deriveKeyState('Melati12rumah', fast);
+    const env = await C.encryptWithKey(data, ks, { tanggal_ekspor: '2026-11-20T00:00:00.000Z', format: 'palsu' });
+    assert.equal(env.tanggal_ekspor, '2026-11-20T00:00:00.000Z');
+    assert.equal(env.format, C.FORMAT_TERENKRIPSI);
+  });
+});

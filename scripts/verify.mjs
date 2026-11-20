@@ -302,17 +302,132 @@ try {
   check('Pengaturan: tema gelap & huruf besar', await page.evaluate(() => document.documentElement.dataset.theme === 'gelap' && document.documentElement.dataset.font === 'besar'));
   await shot(page, '07-pengaturan-gelap');
   check('Pengaturan: keterangan penyimpanan lokal selalu terlihat', await page.locator('#local-note').isVisible());
-  await page.getByLabel('PIN (4–8 angka)').fill('2468');
-  await page.getByLabel('Ulangi PIN').fill('2468');
-  await page.click('button:has-text("Aktifkan PIN")');
-  const pinRec = await page.evaluate(() => JSON.parse(localStorage.getItem('petaAsetKeluarga.v1')).pengaturan.pin);
-  check('PIN: disimpan sebagai hash, bukan teks biasa', pinRec && /^[0-9a-f]{64}$/.test(pinRec.hash) && !JSON.stringify(pinRec).includes('2468'));
+  const KEYLS = 'petaAsetKeluarga.v1';
+  const stored = () => page.evaluate((k) => localStorage.getItem(k), KEYLS);
+  const pengaturan = () => page.goto(DIST + '#/pengaturan').then(() => page.waitForSelector('#h-enk'));
+
+  // Kunci PIN lama (versi 1.1, tanpa enkripsi) tetap bisa dibuka dan diganti enkripsi
+  await page.evaluate((k) => {
+    const d = JSON.parse(localStorage.getItem(k));
+    d.pengaturan.pin = { salt: 'garamuji', hash: PAKCore.hashPin('2468', 'garamuji'), iterasi: 2000 };
+    localStorage.setItem(k, JSON.stringify(d));
+  }, KEYLS);
   await page.reload();
-  check('PIN: layar kunci muncul saat dibuka', await page.locator('#lock').isVisible());
-  await page.fill('#lock-pin', '1111'); await page.press('#lock-pin', 'Enter');
-  check('PIN: PIN salah ditolak', (await text(page, '#lock-err')).includes('PIN salah'));
+  check('PIN lama: layar kunci tetap bekerja', await page.locator('#lock').isVisible());
   await page.fill('#lock-pin', '2468'); await page.press('#lock-pin', 'Enter');
-  check('PIN: PIN benar membuka aplikasi', !(await page.locator('#lock').isVisible()) && (await page.locator('main h2').count()) > 0);
+  await page.waitForSelector('#lock', { state: 'hidden' });
+  await pengaturan();
+  check('PIN lama: Pengaturan menawarkan peralihan ke enkripsi', (await text(page, '#h-enk >> xpath=..')).includes('Kunci PIN lama'));
+
+  // Aktifkan enkripsi: validasi
+  const enc = page.locator('#h-enk >> xpath=..');
+  await enc.getByLabel('PIN atau kata sandi baru').fill('2468');
+  await enc.getByLabel('Ulangi PIN atau kata sandi').fill('2468');
+  await enc.locator('button:has-text("Aktifkan enkripsi")').click();
+  check('Enkripsi: PIN < 6 karakter ditolak', (await enc.locator('.err').allInnerTexts()).some((e) => /Minimal 6/.test(e)));
+  await enc.getByLabel('PIN atau kata sandi baru').fill('246813');
+  check('Enkripsi: peringatan PIN lemah tampil', /lemah/.test(await enc.locator('.warn-text').innerText()));
+  await enc.getByLabel('PIN atau kata sandi baru').fill('Melati12rumah');
+  await enc.getByLabel('Ulangi PIN atau kata sandi').fill('Melati12rumah');
+  check('Enkripsi: kata sandi campuran dinilai cukup kuat', /cukup kuat/.test(await enc.locator('.ok-text').innerText()));
+  await enc.locator('button:has-text("Aktifkan enkripsi")').click();
+  check('Enkripsi: wajib mencentang pernyataan risiko lupa PIN', /Centang pernyataan/.test(await enc.innerText()));
+  await enc.getByLabel(/Saya mengerti/).check();
+  await enc.locator('button:has-text("Aktifkan enkripsi")').click();
+  await page.waitForSelector('#h-enk >> xpath=.. >> text=Enkripsi aktif', { timeout: 15000 });
+  let raw = await stored();
+  let env = JSON.parse(raw);
+  check('Enkripsi: localStorage berisi amplop AES-GCM + PBKDF2 600.000', env.format === 'peta-aset-keluarga/terenkripsi' && env.cipher.nama === 'AES-GCM' && env.kdf.iterasi === 600000);
+  const cipherBytes = Buffer.from(env.data, 'base64').toString('latin1');
+  const header = JSON.stringify({ ...env, data: '' });
+  check('Enkripsi: tidak ada teks data yang terbaca di localStorage', !/CONTOH|Uji Rumah|Melati|Rp |Brankas/.test(header) && !/CONTOH|Brankas|Melati/.test(cipherBytes) && !('aset' in env) && !('pengaturan' in env));
+
+  // Perubahan setelah enkripsi tetap tersimpan terenkripsi
+  await page.goto(DIST + '#/aset/baru'); await page.waitForSelector('main h2');
+  await page.getByLabel('Nama aset').fill('Aset Setelah Enkripsi');
+  await page.click('button:has-text("Simpan aset")');
+  await page.waitForSelector('main h2:has-text("Aset Setelah Enkripsi")');
+  await page.waitForTimeout(150);
+  raw = await stored();
+  check('Enkripsi: data baru disimpan terenkripsi', !raw.includes('Aset Setelah Enkripsi') && JSON.parse(raw).cipher.iv !== env.cipher.iv);
+
+  // Buka ulang: wajib PIN
+  await page.reload();
+  check('Enkripsi: layar kunci muncul saat dibuka', await page.locator('#lock').isVisible());
+  check('Enkripsi: konten aplikasi kosong sebelum PIN dimasukkan', !(await page.locator('#main').innerText()).includes('CONTOH'));
+  await page.fill('#lock-pin', 'salah1234'); await page.press('#lock-pin', 'Enter');
+  await page.waitForFunction(() => /salah/.test(document.getElementById('lock-err').textContent), null, { timeout: 15000 });
+  check('Enkripsi: PIN salah ditolak', true);
+  await page.fill('#lock-pin', 'Melati12rumah'); await page.press('#lock-pin', 'Enter');
+  await page.waitForSelector('#lock', { state: 'hidden', timeout: 15000 });
+  const nAset = await page.evaluate(() => document.querySelectorAll('#main').length && true);
+  await page.goto(DIST + '#/aset'); await page.waitForSelector('main h2');
+  await page.reload();
+  await page.fill('#lock-pin', 'Melati12rumah'); await page.press('#lock-pin', 'Enter');
+  await page.waitForSelector('#lock', { state: 'hidden', timeout: 15000 });
+  await page.click('text=Tampilan kartu').catch(() => {});
+  const asetText = await text(page, 'main');
+  check('Enkripsi: PIN benar membuka data utuh', nAset && asetText.includes('Aset Setelah Enkripsi') && asetText.includes('[CONTOH] Rumah Jl. Fiktif 12'));
+  check('Enkripsi: tema dari data terenkripsi diterapkan setelah dibuka', await page.evaluate(() => document.documentElement.dataset.theme === 'gelap'));
+
+  // Backup terenkripsi & impor
+  await nav(page, '#/ekspor');
+  const [dle] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("Unduh backup JSON")')]);
+  const encBackupPath = await dle.path();
+  const encBackup = readFileSync(encBackupPath, 'utf8');
+  const encObj = JSON.parse(encBackup);
+  check('Backup: terenkripsi secara default saat enkripsi aktif', /terenkripsi\.json$/.test(dle.suggestedFilename()) && encObj.format === 'peta-aset-keluarga/terenkripsi' && !/CONTOH/.test(encBackup) && !!encObj.tanggal_ekspor);
+  await page.getByLabel(/Enkripsi berkas backup/).uncheck();
+  const [dlp] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("Unduh backup JSON")')]);
+  check('Backup: bisa memilih versi biasa', JSON.parse(readFileSync(await dlp.path(), 'utf8')).aset.some((a) => a.nama === 'Aset Setelah Enkripsi'));
+  await page.setInputFiles('main input[type=file]', encBackupPath);
+  await page.getByLabel('PIN atau kata sandi backup').fill('bukan-ini');
+  await page.click('button:has-text("Buka berkas")');
+  await page.waitForSelector('main .err:has-text("PIN salah")', { timeout: 15000 });
+  check('Impor terenkripsi: PIN salah ditolak, data tidak berubah', true);
+  await page.getByLabel('PIN atau kata sandi backup').fill('Melati12rumah');
+  await page.click('button:has-text("Buka berkas")');
+  await page.waitForSelector('main .banner.ok:has-text("Validasi lolos")', { timeout: 15000 });
+  check('Impor terenkripsi: PIN benar → pratinjau', /Aset\s*\d+ \(saat ini: \d+\)/.test(await text(page, 'main .banner.ok:has-text("Validasi lolos")')));
+
+  // Ganti PIN
+  await pengaturan();
+  await page.fill('#lock-pin', 'Melati12rumah').catch(() => {});
+  if (await page.locator('#lock').isVisible()) { await page.press('#lock-pin', 'Enter'); await page.waitForSelector('#lock', { state: 'hidden', timeout: 15000 }); await nav(page, '#/pengaturan'); }
+  await enc.getByLabel('PIN saat ini').fill('salah-sekali');
+  await enc.getByLabel('PIN atau kata sandi baru').fill('Kenanga34kebun');
+  await enc.getByLabel('Ulangi PIN baru').fill('Kenanga34kebun');
+  await enc.locator('button:has-text("Ganti PIN")').click();
+  await page.waitForSelector('#h-enk >> xpath=.. >> text=PIN saat ini salah', { timeout: 15000 });
+  check('Ganti PIN: PIN saat ini yang salah ditolak', true);
+  await enc.getByLabel('PIN saat ini').fill('Melati12rumah');
+  await enc.locator('button:has-text("Ganti PIN")').click();
+  await page.waitForFunction(() => /PIN diganti/.test(document.getElementById('toast').textContent), null, { timeout: 20000 });
+  await page.reload();
+  await page.fill('#lock-pin', 'Melati12rumah'); await page.press('#lock-pin', 'Enter');
+  await page.waitForFunction(() => /salah/.test(document.getElementById('lock-err').textContent), null, { timeout: 15000 });
+  await page.fill('#lock-pin', 'Kenanga34kebun'); await page.press('#lock-pin', 'Enter');
+  await page.waitForSelector('#lock', { state: 'hidden', timeout: 15000 });
+  check('Ganti PIN: PIN lama tidak berlaku, PIN baru membuka data', true);
+
+  // Kunci sekarang
+  await nav(page, '#/pengaturan');
+  await page.click('button:has-text("Kunci sekarang")');
+  await page.waitForSelector('#lock:not([hidden])');
+  check('Kunci sekarang: kunci dihapus dari memori', await page.locator('#lock').isVisible());
+  await page.fill('#lock-pin', 'Kenanga34kebun'); await page.press('#lock-pin', 'Enter');
+  await page.waitForSelector('#lock', { state: 'hidden', timeout: 15000 });
+
+  // Matikan enkripsi
+  await nav(page, '#/pengaturan');
+  await enc.getByLabel('PIN saat ini').fill('Kenanga34kebun');
+  await enc.locator('button:has-text("Matikan enkripsi")').click();
+  await page.click('dialog button:has-text("Matikan enkripsi")', { timeout: 15000 });
+  await page.waitForFunction(() => /Enkripsi dimatikan/.test(document.getElementById('toast').textContent), null, { timeout: 15000 });
+  raw = await stored();
+  check('Matikan enkripsi: data kembali sebagai teks biasa', JSON.parse(raw).aset.some((a) => a.nama === 'Aset Setelah Enkripsi'));
+  await page.reload();
+  check('Matikan enkripsi: tidak ada layar kunci', !(await page.locator('#lock').isVisible()));
   // Reset
   await nav(page, '#/pengaturan');
   await page.click('button:has-text("Reset semua data")');

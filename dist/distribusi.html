@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wBFVjJz1qh4qRFgrKsnAgFbFTUDYXr4EZF76or+S+NQ='; style-src 'sha256-wLnBrMgI7lX6pYoKl5axTL1ZeHWze/2uqHodzpgEXFE='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AISnnh2WZ2lX64QdU66LRycxjIrO8PkCz3UWDNYhJmU='; style-src 'sha256-QpFHfEpQxhaqW48OEDlO543+Qs8j+QJG23VnYRCqTVI='; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'self'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <title>Peta Aset Keluarga</title>
@@ -72,6 +72,8 @@ label{font-weight:600;font-size:.92rem;display:block;margin-bottom:.25rem}
 .field{margin-bottom:.9rem}
 .help{font-size:.82rem;color:var(--muted);margin-top:.2rem}
 .err{font-size:.85rem;color:var(--danger);margin-top:.2rem;font-weight:600}
+.help.ok-text{color:var(--ok)}
+.help.warn-text{color:var(--warn)}
 input[type=text],input[type=search],input[type=date],input[type=tel],input[type=password],input[type=number],select,textarea{width:100%;font:inherit;font-size:.95rem;padding:.45rem .6rem;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);min-height:2.4rem}
 textarea{min-height:5rem;resize:vertical}
 [aria-invalid="true"]{border-color:var(--danger)!important;box-shadow:0 0 0 1px var(--danger)}
@@ -173,12 +175,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <div id="lock" hidden>
   <form class="card" id="lock-form" autocomplete="off">
     <h2>Peta Aset Keluarga terkunci</h2>
+    <p class="small" id="lock-info"></p>
     <div class="field">
-      <label for="lock-pin">Masukkan PIN</label>
-      <input type="password" id="lock-pin" inputmode="numeric" maxlength="8" autocomplete="off" required>
+      <label for="lock-pin">PIN atau kata sandi</label>
+      <input type="password" id="lock-pin" maxlength="128" autocomplete="current-password" required>
       <div class="err" id="lock-err" role="alert"></div>
     </div>
-    <div class="row"><button class="btn primary" type="submit">Buka</button>
+    <div class="row"><button class="btn primary" type="submit" id="lock-submit">Buka</button>
       <button class="btn link" type="button" id="lock-forgot">Lupa PIN?</button></div>
     <p class="help">Data hanya tersimpan di perangkat ini.</p>
   </form>
@@ -228,7 +231,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   'use strict';
 
   var VERSI_SKEMA = 1;
-  var VERSI_APLIKASI = '1.1.0';
+  var VERSI_APLIKASI = '1.2.0';
 
   // ---------------------------------------------------------------------------
   // Konstanta domain
@@ -728,6 +731,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       }
     }
     if (!isObj(obj)) return { ok: false, errors: ['Isi berkas harus berupa objek JSON.'], counts: {} };
+    if (obj.format === FORMAT_TERENKRIPSI) return { ok: false, terenkripsi: true, errors: ['Berkas ini terenkripsi. Masukkan PIN atau kata sandi untuk membukanya.'], counts: {} };
     if (typeof obj.versi_skema !== 'number' || !isFinite(obj.versi_skema)) {
       errors.push('Field versi_skema tidak ada atau bukan angka.');
     } else if (obj.versi_skema > VERSI_SKEMA) {
@@ -1071,6 +1075,111 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   }
 
   // ---------------------------------------------------------------------------
+  // Enkripsi data dengan PIN/kata sandi: PBKDF2-SHA-256 -> AES-GCM 256 (Web Crypto)
+  // ---------------------------------------------------------------------------
+  var FORMAT_TERENKRIPSI = 'peta-aset-keluarga/terenkripsi';
+  var ENKRIPSI_ITERASI = 600000;
+  var B64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+
+  function getCrypto() {
+    var c = typeof globalThis !== 'undefined' ? globalThis.crypto : (typeof self !== 'undefined' ? self.crypto : undefined);
+    return c && c.subtle && c.getRandomValues ? c : null;
+  }
+  function cryptoTersedia() { return getCrypto() !== null; }
+
+  function bytesToB64(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function b64Len(b64) { try { return atob(b64).length; } catch (e) { return -1; } }
+
+  /** Validasi PIN/kata sandi enkripsi. Mengembalikan {ok, error, lemah, saran}. */
+  function validatePassphrase(p) {
+    var s = String(p == null ? '' : p);
+    if (s.length < 6) return { ok: false, error: 'Minimal 6 karakter.' };
+    if (s.length > 128) return { ok: false, error: 'Maksimal 128 karakter.' };
+    if (/^\s|\s$/.test(s)) return { ok: false, error: 'Jangan diawali atau diakhiri spasi.' };
+    var jenis = (/[a-z]/.test(s) ? 1 : 0) + (/[A-Z]/.test(s) ? 1 : 0) + (/\d/.test(s) ? 1 : 0) + (/[^A-Za-z0-9]/.test(s) ? 1 : 0);
+    var lemah = (/^\d+$/.test(s) && s.length < 12) || s.length < 8 || (jenis < 2 && s.length < 14) || /^(.)\1+$/.test(s);
+    return {
+      ok: true, lemah: lemah,
+      saran: lemah ? 'PIN ini tergolong lemah: jika seseorang menyalin data browser, PIN pendek atau hanya angka bisa ditebak komputer. Disarankan minimal 8 karakter campuran huruf dan angka, atau kalimat pendek.' : ''
+    };
+  }
+
+  /** Apakah objek berbentuk amplop data terenkripsi yang valid. */
+  function isEncryptedEnvelope(o) {
+    if (!isObj(o) || o.format !== FORMAT_TERENKRIPSI || o.versi_enkripsi !== 1) return false;
+    if (!isObj(o.kdf) || o.kdf.nama !== 'PBKDF2' || o.kdf.hash !== 'SHA-256') return false;
+    if (typeof o.kdf.iterasi !== 'number' || o.kdf.iterasi < 1000 || o.kdf.iterasi > 10000000) return false;
+    if (!isStr(o.kdf.garam) || !B64_RE.test(o.kdf.garam) || b64Len(o.kdf.garam) < 16) return false;
+    if (!isObj(o.cipher) || o.cipher.nama !== 'AES-GCM' || !isStr(o.cipher.iv) || !B64_RE.test(o.cipher.iv) || b64Len(o.cipher.iv) !== 12) return false;
+    if (!isStr(o.data) || !B64_RE.test(o.data) || b64Len(o.data) < 17) return false;
+    return true;
+  }
+
+  function aadFor(iterasi, garam) { return new TextEncoder().encode(FORMAT_TERENKRIPSI + ':1:' + iterasi + ':' + garam); }
+
+  /** Turunkan kunci dari PIN. opt: {garam (b64), iterasi}. Mengembalikan Promise<{key, garam, iterasi}>. */
+  function deriveKeyState(pass, opt) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    var o = opt || {};
+    var garam = o.garam || bytesToB64(c.getRandomValues(new Uint8Array(16)));
+    var iterasi = o.iterasi || ENKRIPSI_ITERASI;
+    return c.subtle.importKey('raw', new TextEncoder().encode(String(pass)), 'PBKDF2', false, ['deriveKey'])
+      .then(function (base) {
+        return c.subtle.deriveKey({ name: 'PBKDF2', salt: b64ToBytes(garam), iterations: iterasi, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      })
+      .then(function (key) { return { key: key, garam: garam, iterasi: iterasi }; });
+  }
+
+  /** Enkripsi objek dengan kunci turunan. IV acak baru setiap kali. Promise<amplop>. */
+  function encryptWithKey(obj, ks, extra) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    var iv = c.getRandomValues(new Uint8Array(12));
+    var plain = new TextEncoder().encode(JSON.stringify(obj));
+    return c.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: aadFor(ks.iterasi, ks.garam) }, ks.key, plain)
+      .then(function (buf) {
+        var env = {
+          format: FORMAT_TERENKRIPSI, versi_enkripsi: 1, versi_skema: VERSI_SKEMA,
+          kdf: { nama: 'PBKDF2', hash: 'SHA-256', iterasi: ks.iterasi, garam: ks.garam },
+          cipher: { nama: 'AES-GCM', iv: bytesToB64(iv) },
+          data: bytesToB64(new Uint8Array(buf))
+        };
+        if (extra) Object.keys(extra).forEach(function (k) { if (!(k in env)) env[k] = extra[k]; });
+        return env;
+      });
+  }
+
+  /** Dekripsi amplop dengan kunci yang sudah diturunkan. Galat 'KATA_SANDI_SALAH' jika gagal. */
+  function decryptWithKey(env, ks) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    if (!isEncryptedEnvelope(env)) return Promise.reject(new Error('BUKAN_AMPLOP'));
+    return c.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(env.cipher.iv), additionalData: aadFor(env.kdf.iterasi, env.kdf.garam) }, ks.key, b64ToBytes(env.data))
+      .then(function (buf) { return JSON.parse(new TextDecoder().decode(buf)); },
+        function () { throw new Error('KATA_SANDI_SALAH'); });
+  }
+
+  /** Dekripsi amplop dengan PIN. Promise<{data, ks}>. */
+  function decryptEnvelope(env, pass) {
+    if (!isEncryptedEnvelope(env)) return Promise.reject(new Error('BUKAN_AMPLOP'));
+    return deriveKeyState(pass, { garam: env.kdf.garam, iterasi: env.kdf.iterasi }).then(function (ks) {
+      return decryptWithKey(env, ks).then(function (data) { return { data: data, ks: ks }; });
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Riwayat (Fase 2)
   // ---------------------------------------------------------------------------
   var LABEL_FIELD = {
@@ -1174,6 +1283,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     incompleteDocAssets: incompleteDocAssets, sortTasks: sortTasks, daysSince: daysSince,
     backupOverdue: backupOverdue, buildPrompt: buildPrompt,
     sha256Hex: sha256Hex, hashPin: hashPin, verifyPin: verifyPin, validatePin: validatePin,
+    FORMAT_TERENKRIPSI: FORMAT_TERENKRIPSI, ENKRIPSI_ITERASI: ENKRIPSI_ITERASI, cryptoTersedia: cryptoTersedia,
+    validatePassphrase: validatePassphrase, isEncryptedEnvelope: isEncryptedEnvelope, deriveKeyState: deriveKeyState,
+    encryptWithKey: encryptWithKey, decryptWithKey: decryptWithKey, decryptEnvelope: decryptEnvelope,
+    bytesToB64: bytesToB64, b64ToBytes: b64ToBytes,
     diffFields: diffFields, parseGuide: parseGuide, guideSectionText: guideSectionText,
     normSearch: normSearch, slugify: slugify, uid: uid
   };
@@ -1181,7 +1294,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 var SEED = {"versi_skema":1,"aset":[{"id":"ast_c1","nama":"[CONTOH] Rumah Jl. Fiktif 12","kategori":"Rumah dan Bangunan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":850000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama, map biru","nomorReferensi":"**12","jatuhTempo":"2027-08-31","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pembayaran PBB.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c2","nama":"[CONTOH] Tanah Kebun Desa Fiktif","kategori":"Tanah","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":300000000,"lokasiDokumen":"[CONTOH] Brankas kamar utama","nomorReferensi":"","jatuhTempo":"","kontakIds":["kon_c3"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c3","nama":"[CONTOH] Motor Bebek 2019","kategori":"Kendaraan","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":9000000,"lokasiDokumen":"[CONTOH] Laci lemari ruang tengah","nomorReferensi":"xx34","jatuhTempo":"2026-12-05","kontakIds":["kon_c4"],"status":"Aktif","catatan":"Entri CONTOH. Jatuh tempo = pajak STNK tahunan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c4","nama":"[CONTOH] Deposito Bank Fiktif","kategori":"Tabungan atau Deposito","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":50000000,"lokasiDokumen":"[CONTOH] Map dokumen bank","nomorReferensi":"**5678","jatuhTempo":"2026-11-10","kontakIds":["kon_c1"],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c5","nama":"[CONTOH] Polis Asuransi Jiwa","kategori":"Asuransi","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":200000000,"lokasiDokumen":"[CONTOH] Map dokumen asuransi","nomorReferensi":"**90","jatuhTempo":"2027-01-04","kontakIds":["kon_c2"],"status":"Aktif","catatan":"Entri CONTOH. Nilai = uang pertanggungan.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c6","nama":"[CONTOH] Emas Batangan 10 gram","kategori":"Emas dan Logam Mulia","pemilikAnggotaId":"ang_c2","pemilikTeks":"","nilai":15000000,"lokasiDokumen":"[CONTOH] Brankas, kotak kecil","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c7","nama":"[CONTOH] Dompet Digital","kategori":"Aset Digital","pemilikAnggotaId":"","pemilikTeks":"[CONTOH] Anak Pertama","platform":"[CONTOH] Platform Fiktif","nilai":null,"lokasiDokumen":"[CONTOH] Disimpan di buku catatan keluarga","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Aktif","catatan":"Entri CONTOH. Tidak ada password di sini.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ast_c8","nama":"[CONTOH] Mobil Lama (sudah dijual)","kategori":"Kendaraan","pemilikAnggotaId":"ang_c1","pemilikTeks":"","nilai":60000000,"lokasiDokumen":"","nomorReferensi":"","jatuhTempo":"","kontakIds":[],"status":"Tidak Aktif","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"dokumen":[{"id":"dok_c1","nama":"[CONTOH] Sertifikat tanah rumah","jenis":"Sertifikat tanah","asetId":"ast_c1","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c2","nama":"[CONTOH] PBG rumah","jenis":"PBG atau IMB","asetId":"ast_c1","status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map biru","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c3","nama":"[CONTOH] Sertifikat tanah kebun","jenis":"Sertifikat tanah","asetId":"ast_c2","status":"Asli Tersedia","lokasi":"[CONTOH] Brankas kamar utama","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c4","nama":"[CONTOH] BPKB motor","jenis":"BPKB","asetId":"ast_c3","status":"Asli Tersedia","lokasi":"[CONTOH] Laci lemari ruang tengah","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c5","nama":"[CONTOH] STNK motor","jenis":"STNK","asetId":"ast_c3","status":"Belum Ada","lokasi":"","catatan":"Entri CONTOH. Dibawa di dompet pemakai motor.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c6","nama":"[CONTOH] Bilyet deposito","jenis":"Bilyet deposito","asetId":"ast_c4","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen bank","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c7","nama":"[CONTOH] Polis asuransi jiwa","jenis":"Polis asuransi","asetId":"ast_c5","status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen asuransi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c8","nama":"[CONTOH] Kartu keluarga","jenis":"Kartu keluarga","asetId":null,"status":"Asli Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"dok_c9","nama":"[CONTOH] Akta nikah","jenis":"Akta nikah","asetId":null,"status":"Fotokopi Tersedia","lokasi":"[CONTOH] Map dokumen keluarga","catatan":"Entri CONTOH. Asli perlu dicari.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"anggota":[{"id":"ang_c1","nama":"[CONTOH] Bapak Fiktif","hubungan":"Kepala keluarga","peran":"Tidak ada peran","kontak":"","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c2","nama":"[CONTOH] Ibu Fiktif","hubungan":"Istri","peran":"Pelaksana","kontak":"0800-0000-0001","tahuLokasiDokumen":true,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c3","nama":"[CONTOH] Anak Pertama","hubungan":"Anak","peran":"Ahli waris","kontak":"0800-0000-0002","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"ang_c4","nama":"[CONTOH] Anak Kedua","hubungan":"Anak","peran":"Ahli waris","kontak":"","tahuLokasiDokumen":false,"catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"kontak":[{"id":"kon_c1","namaLembaga":"[CONTOH] Bank Fiktif Cabang Kota","kategori":"Bank","namaPetugas":"[CONTOH] Petugas Layanan","telepon":"0800-0000-0101","alamat":"[CONTOH] Jl. Contoh No. 1, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–15.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c2","namaLembaga":"[CONTOH] Asuransi Fiktif","kategori":"Asuransi","namaPetugas":"[CONTOH] Agen Asuransi","telepon":"0800-0000-0102","alamat":"","jamLayanan":"Senin–Sabtu 09.00–17.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c3","namaLembaga":"[CONTOH] Kantor Notaris Fiktif","kategori":"Notaris atau PPAT","namaPetugas":"[CONTOH] Notaris","telepon":"0800-0000-0103","alamat":"[CONTOH] Ruko Contoh Blok A, Kota Fiktif","jamLayanan":"Dengan janji temu","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"kon_c4","namaLembaga":"[CONTOH] Samsat Kota Fiktif","kategori":"Samsat","namaPetugas":"","telepon":"","alamat":"[CONTOH] Jl. Contoh Raya, Kota Fiktif","jamLayanan":"Senin–Jumat 08.00–14.00","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"tugas":[{"id":"tgs_c1","judul":"[CONTOH] Perbarui STNK motor","asetId":"ast_c3","tenggat":"2026-11-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c2","judul":"[CONTOH] Perpanjang polis asuransi jiwa","asetId":"ast_c5","tenggat":"2026-12-28","status":"Belum","prioritas":"Tinggi","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c3","judul":"[CONTOH] Cek buku tabungan yang lama tidak aktif","asetId":null,"tenggat":"2027-01-15","status":"Berjalan","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c4","judul":"[CONTOH] Perbarui kontak ahli waris","asetId":null,"tenggat":"2026-12-15","status":"Belum","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"},{"id":"tgs_c5","judul":"[CONTOH] Simpan salinan dokumen","asetId":null,"tenggat":"2026-10-01","status":"Selesai","prioritas":"Sedang","catatan":"Entri CONTOH.","dibuat":"2026-01-10T09:00:00.000Z","diubah":"2026-01-10T09:00:00.000Z"}],"riwayat":[],"pengaturan":{"namaKeluarga":"Contoh","tema":"terang","ukuranFont":"normal","formatTanggal":"panjang","onboardingSelesai":true,"catatRiwayat":true,"pin":null},"backup":{"terakhir":null},"panduan":{"centang":{}}};
 var SEED_SUMBER = "contoh";
-var GUIDE_MD = "# Panduan Peta Aset Keluarga\n\nPanduan ini berisi langkah umum untuk mencatat aset dan menyiapkan dokumen keluarga. Isinya bukan nasihat hukum atau keuangan. Untuk wasiat dan urusan waris, konsultasikan dengan notaris.\n\n## Cara mendata aset\n\nMulailah dari aset yang paling besar nilainya atau yang paling sulit dilacak jika pemiliknya tidak ada, misalnya tanah, rumah, tabungan di bank yang jarang dipakai, dan polis asuransi. Satu aset dicatat sebagai satu entri.\n\nUntuk setiap aset, catat hal-hal yang membantu ahli waris menemukannya: nama yang mudah dikenali, siapa pemiliknya, di mana dokumen aslinya disimpan, dan siapa yang bisa dihubungi.\n\n- Gunakan nama yang jelas, misalnya \"Rumah Jl. Melati 12\" atau \"Deposito Bank ABC\".\n- Nilai cukup perkiraan. Tidak perlu tepat dan boleh dikosongkan.\n- Nomor referensi hanya diisi bagian yang disamarkan, misalnya 4 digit terakhir. Jangan menulis nomor rekening atau nomor kartu lengkap.\n- Untuk aset digital, cukup tulis nama platform dan di mana informasi aksesnya disimpan. Jangan pernah menulis password, PIN, seed phrase, atau kunci privat.\n- Isi tanggal jatuh tempo untuk pajak, perpanjangan, atau polis agar muncul di Pengingat.\n\n- [ ] Catat semua tanah dan bangunan\n- [ ] Catat kendaraan beserta tanggal pajak STNK\n- [ ] Catat rekening tabungan dan deposito (nama bank dan 4 digit terakhir saja)\n- [ ] Catat polis asuransi beserta tanggal jatuh temponya\n- [ ] Catat emas, investasi, dan usaha keluarga\n- [ ] Catat aset digital (nama platform dan lokasi informasi akses)\n- [ ] Hubungkan setiap aset dengan kontak terkait\n\n## Cara mengumpulkan dokumen\n\nKumpulkan dokumen penting di satu tempat yang aman dan diketahui setidaknya satu anggota keluarga tepercaya. Di aplikasi ini, catat di mana dokumen asli dan fotokopinya disimpan. Aplikasi tidak menyimpan berkas atau foto dokumen.\n\n### Dokumen yang umum diperlukan\n\n- Tanah dan bangunan: sertifikat tanah, PBG atau IMB, bukti bayar PBB.\n- Kendaraan: BPKB dan STNK.\n- Tabungan dan deposito: buku tabungan dan bilyet deposito.\n- Asuransi: polis asuransi.\n- Usaha: akta pendirian dan surat keterangan usaha.\n- Keluarga: kartu keluarga, akta nikah, akta kelahiran anak, dan KTP.\n\n- [ ] Kumpulkan dokumen asli di satu map atau brankas\n- [ ] Buat fotokopi dokumen penting dan simpan terpisah dari aslinya\n- [ ] Tandai status setiap dokumen di menu Dokumen\n- [ ] Catat lokasi penyimpanan setiap dokumen\n- [ ] Periksa dokumen yang masih \"Belum Ada\" dan rencanakan cara mendapatkannya\n\n## Hal yang perlu disiapkan keluarga\n\nPersiapan yang baik membuat keluarga tidak bingung saat harus mengurus sesuatu. Bicarakan secara terbuka dengan anggota keluarga yang akan terlibat.\n\n- Tentukan siapa yang mengetahui lokasi dokumen dan tandai di menu Keluarga dan Ahli Waris.\n- Tentukan siapa yang akan menjadi pelaksana atau penanggung jawab.\n- Simpan kontak penting seperti bank, asuransi, notaris, dan agen.\n- Cetak ringkasan dan simpan bersama dokumen penting.\n\n- [ ] Daftarkan anggota keluarga dan perannya\n- [ ] Pastikan minimal satu orang tepercaya tahu lokasi dokumen\n- [ ] Simpan kontak bank, asuransi, dan notaris\n- [ ] Cetak ringkasan dan simpan di tempat aman\n- [ ] Jadwalkan pembaruan data setiap 6 bulan\n\n## Kapan perlu konsultasi notaris\n\nNotaris atau PPAT dapat membantu untuk urusan yang membutuhkan akta resmi. Aplikasi ini tidak bisa menggantikan peran mereka.\n\n- Saat ingin membuat atau mengubah wasiat.\n- Saat ada pembagian waris, terutama jika melibatkan tanah atau bangunan.\n- Saat balik nama sertifikat tanah atau bangunan.\n- Saat mendirikan, mengubah, atau mengalihkan usaha.\n- Saat ada perbedaan pendapat dalam keluarga tentang pembagian aset.\n- Saat ragu apakah suatu dokumen cukup kuat secara hukum.\n\n- [ ] Simpan kontak notaris atau PPAT di Kontak Penting\n- [ ] Siapkan daftar pertanyaan sebelum bertemu notaris\n- [ ] Bawa fotokopi dokumen yang relevan saat konsultasi\n\n## Langkah umum jika pemilik meninggal\n\nChecklist berikut adalah langkah umum, bukan nasihat hukum. Urutan dan persyaratan dapat berbeda menurut daerah, lembaga, agama, dan hukum yang berlaku bagi keluarga. Konfirmasi langsung ke lembaga terkait dan konsultasikan dengan notaris.\n\n- [ ] Urus surat keterangan kematian dari kelurahan atau rumah sakit\n- [ ] Perbarui kartu keluarga di Dukcapil\n- [ ] Kumpulkan dokumen identitas almarhum dan ahli waris\n- [ ] Urus surat keterangan ahli waris sesuai ketentuan yang berlaku\n- [ ] Hubungi bank untuk menanyakan prosedur rekening almarhum\n- [ ] Hubungi perusahaan asuransi untuk klaim polis\n- [ ] Cek kendaraan dan rencanakan balik nama di Samsat\n- [ ] Konsultasikan pembagian waris dan balik nama tanah dengan notaris atau PPAT\n- [ ] Perbarui status aset di aplikasi (Belum Diklaim, Sudah Diserahkan)\n- [ ] Simpan semua bukti pengurusan bersama dokumen asli\n\n## Cara menjaga data tetap aman\n\nData aplikasi hanya tersimpan di browser pada perangkat ini. Aplikasi tidak memiliki server dan tidak mengirim data ke mana pun. Artinya keamanan data juga bergantung pada perangkat Anda.\n\n- Gunakan kunci layar pada perangkat, dan aktifkan PIN aplikasi jika perangkat dipakai bersama.\n- Jangan menyimpan nomor rekening, nomor kartu, password, PIN, seed phrase, atau kunci privat.\n- Buat backup JSON secara berkala dan simpan di tempat aman, misalnya flashdisk di brankas.\n- Ingat bahwa menghapus cache atau data browser juga menghapus data aplikasi.\n- Hati-hati saat memakai Asisten Salin-Tempel: periksa isi prompt sebelum menempelkannya ke layanan AI.\n\n- [ ] Aktifkan kunci layar perangkat\n- [ ] Buat backup JSON pertama\n- [ ] Simpan berkas backup di tempat aman\n- [ ] Periksa bahwa tidak ada password atau nomor lengkap di catatan\n";
+var GUIDE_MD = "# Panduan Peta Aset Keluarga\n\nPanduan ini berisi langkah umum untuk mencatat aset dan menyiapkan dokumen keluarga. Isinya bukan nasihat hukum atau keuangan. Untuk wasiat dan urusan waris, konsultasikan dengan notaris.\n\n## Cara mendata aset\n\nMulailah dari aset yang paling besar nilainya atau yang paling sulit dilacak jika pemiliknya tidak ada, misalnya tanah, rumah, tabungan di bank yang jarang dipakai, dan polis asuransi. Satu aset dicatat sebagai satu entri.\n\nUntuk setiap aset, catat hal-hal yang membantu ahli waris menemukannya: nama yang mudah dikenali, siapa pemiliknya, di mana dokumen aslinya disimpan, dan siapa yang bisa dihubungi.\n\n- Gunakan nama yang jelas, misalnya \"Rumah Jl. Melati 12\" atau \"Deposito Bank ABC\".\n- Nilai cukup perkiraan. Tidak perlu tepat dan boleh dikosongkan.\n- Nomor referensi hanya diisi bagian yang disamarkan, misalnya 4 digit terakhir. Jangan menulis nomor rekening atau nomor kartu lengkap.\n- Untuk aset digital, cukup tulis nama platform dan di mana informasi aksesnya disimpan. Jangan pernah menulis password, PIN, seed phrase, atau kunci privat.\n- Isi tanggal jatuh tempo untuk pajak, perpanjangan, atau polis agar muncul di Pengingat.\n\n- [ ] Catat semua tanah dan bangunan\n- [ ] Catat kendaraan beserta tanggal pajak STNK\n- [ ] Catat rekening tabungan dan deposito (nama bank dan 4 digit terakhir saja)\n- [ ] Catat polis asuransi beserta tanggal jatuh temponya\n- [ ] Catat emas, investasi, dan usaha keluarga\n- [ ] Catat aset digital (nama platform dan lokasi informasi akses)\n- [ ] Hubungkan setiap aset dengan kontak terkait\n\n## Cara mengumpulkan dokumen\n\nKumpulkan dokumen penting di satu tempat yang aman dan diketahui setidaknya satu anggota keluarga tepercaya. Di aplikasi ini, catat di mana dokumen asli dan fotokopinya disimpan. Aplikasi tidak menyimpan berkas atau foto dokumen.\n\n### Dokumen yang umum diperlukan\n\n- Tanah dan bangunan: sertifikat tanah, PBG atau IMB, bukti bayar PBB.\n- Kendaraan: BPKB dan STNK.\n- Tabungan dan deposito: buku tabungan dan bilyet deposito.\n- Asuransi: polis asuransi.\n- Usaha: akta pendirian dan surat keterangan usaha.\n- Keluarga: kartu keluarga, akta nikah, akta kelahiran anak, dan KTP.\n\n- [ ] Kumpulkan dokumen asli di satu map atau brankas\n- [ ] Buat fotokopi dokumen penting dan simpan terpisah dari aslinya\n- [ ] Tandai status setiap dokumen di menu Dokumen\n- [ ] Catat lokasi penyimpanan setiap dokumen\n- [ ] Periksa dokumen yang masih \"Belum Ada\" dan rencanakan cara mendapatkannya\n\n## Hal yang perlu disiapkan keluarga\n\nPersiapan yang baik membuat keluarga tidak bingung saat harus mengurus sesuatu. Bicarakan secara terbuka dengan anggota keluarga yang akan terlibat.\n\n- Tentukan siapa yang mengetahui lokasi dokumen dan tandai di menu Keluarga dan Ahli Waris.\n- Tentukan siapa yang akan menjadi pelaksana atau penanggung jawab.\n- Simpan kontak penting seperti bank, asuransi, notaris, dan agen.\n- Cetak ringkasan dan simpan bersama dokumen penting.\n\n- [ ] Daftarkan anggota keluarga dan perannya\n- [ ] Pastikan minimal satu orang tepercaya tahu lokasi dokumen\n- [ ] Simpan kontak bank, asuransi, dan notaris\n- [ ] Cetak ringkasan dan simpan di tempat aman\n- [ ] Jadwalkan pembaruan data setiap 6 bulan\n\n## Kapan perlu konsultasi notaris\n\nNotaris atau PPAT dapat membantu untuk urusan yang membutuhkan akta resmi. Aplikasi ini tidak bisa menggantikan peran mereka.\n\n- Saat ingin membuat atau mengubah wasiat.\n- Saat ada pembagian waris, terutama jika melibatkan tanah atau bangunan.\n- Saat balik nama sertifikat tanah atau bangunan.\n- Saat mendirikan, mengubah, atau mengalihkan usaha.\n- Saat ada perbedaan pendapat dalam keluarga tentang pembagian aset.\n- Saat ragu apakah suatu dokumen cukup kuat secara hukum.\n\n- [ ] Simpan kontak notaris atau PPAT di Kontak Penting\n- [ ] Siapkan daftar pertanyaan sebelum bertemu notaris\n- [ ] Bawa fotokopi dokumen yang relevan saat konsultasi\n\n## Langkah umum jika pemilik meninggal\n\nChecklist berikut adalah langkah umum, bukan nasihat hukum. Urutan dan persyaratan dapat berbeda menurut daerah, lembaga, agama, dan hukum yang berlaku bagi keluarga. Konfirmasi langsung ke lembaga terkait dan konsultasikan dengan notaris.\n\n- [ ] Urus surat keterangan kematian dari kelurahan atau rumah sakit\n- [ ] Perbarui kartu keluarga di Dukcapil\n- [ ] Kumpulkan dokumen identitas almarhum dan ahli waris\n- [ ] Urus surat keterangan ahli waris sesuai ketentuan yang berlaku\n- [ ] Hubungi bank untuk menanyakan prosedur rekening almarhum\n- [ ] Hubungi perusahaan asuransi untuk klaim polis\n- [ ] Cek kendaraan dan rencanakan balik nama di Samsat\n- [ ] Konsultasikan pembagian waris dan balik nama tanah dengan notaris atau PPAT\n- [ ] Perbarui status aset di aplikasi (Belum Diklaim, Sudah Diserahkan)\n- [ ] Simpan semua bukti pengurusan bersama dokumen asli\n\n## Cara menjaga data tetap aman\n\nData aplikasi hanya tersimpan di browser pada perangkat ini. Aplikasi tidak memiliki server dan tidak mengirim data ke mana pun. Artinya keamanan data juga bergantung pada perangkat Anda.\n\n- Gunakan kunci layar pada perangkat.\n- Aktifkan \"Enkripsi data dengan PIN\" di Pengaturan agar data hanya bisa dibuka dengan PIN. Pilih PIN yang panjang (8+ karakter campuran) dan simpan di tempat aman. Jika PIN lupa, data hanya bisa dipulihkan dari backup.\n- Jangan menyimpan nomor rekening, nomor kartu, password, PIN, seed phrase, atau kunci privat.\n- Buat backup JSON secara berkala dan simpan di tempat aman, misalnya flashdisk di brankas.\n- Ingat bahwa menghapus cache atau data browser juga menghapus data aplikasi.\n- Hati-hati saat memakai Asisten Salin-Tempel: periksa isi prompt sebelum menempelkannya ke layanan AI.\n\n- [ ] Aktifkan kunci layar perangkat\n- [ ] Pertimbangkan mengaktifkan enkripsi data dengan PIN\n- [ ] Buat backup JSON pertama\n- [ ] Simpan berkas backup di tempat aman\n- [ ] Periksa bahwa tidak ada password atau nomor lengkap di catatan\n";
 (function () {
 'use strict';
 var C = window.PAKCore;
@@ -1282,6 +1395,13 @@ function fileStamp() { return today(); }
 // =============================================================================
 var DB = C.emptyData();
 var muatGagal = '';
+var KS = null;       // kunci enkripsi aktif — hanya di memori, tidak pernah disimpan
+var AMPLOP = null;   // data terenkripsi yang menunggu dibuka dengan PIN
+var antrianSimpan = Promise.resolve();
+var tulisTertunda = 0;
+
+function parseStored(raw) { try { return JSON.parse(raw); } catch (e) { return null; } }
+function tungguSimpan() { return antrianSimpan; }
 
 function load() {
   var raw = null;
@@ -1300,22 +1420,47 @@ function load() {
     DB = C.emptyData();
     return;
   }
-  var res = C.validateImport(raw);
+  var obj = parseStored(raw);
+  if (obj && C.isEncryptedEnvelope(obj)) { AMPLOP = obj; DB = C.emptyData(); return; }
+  var res = C.validateImport(obj !== null ? obj : raw);
   if (res.ok) { DB = res.data; return; }
   // Data rusak: simpan salinan mentah agar tidak hilang, lalu mulai kosong.
   try { localStorage.setItem(KEY + '.rusak.' + Date.now(), raw); } catch (e) { /* abaikan */ }
   muatGagal = 'Data tersimpan tidak bisa dibaca (' + res.errors.slice(0, 2).join(' ') + '). Salinan mentah disimpan terpisah di localStorage.';
   DB = C.emptyData();
 }
+/**
+ * Simpan data. Jika enkripsi aktif, data dienkripsi (asinkron) sebelum ditulis.
+ * Semua penulisan melewati satu antrean agar urutannya selalu sesuai.
+ */
 function save(silent) {
   DB.versi_skema = C.VERSI_SKEMA;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(DB));
-    return true;
-  } catch (e) {
-    if (!silent) toast('Gagal menyimpan: penyimpanan perangkat penuh atau diblokir.');
-    return false;
+  var snapshot = JSON.stringify(DB);
+  var ks = KS;
+  function gagal() { if (!silent) toast(ks ? 'Gagal menyimpan data terenkripsi.' : 'Gagal menyimpan: penyimpanan perangkat penuh atau diblokir.'); }
+  if (!ks && tulisTertunda === 0) {
+    try { localStorage.setItem(KEY, snapshot); return true; } catch (e) { gagal(); return false; }
   }
+  tulisTertunda++;
+  antrianSimpan = antrianSimpan.then(function () {
+    if (!ks) { localStorage.setItem(KEY, snapshot); return; }
+    return C.encryptWithKey(JSON.parse(snapshot), ks).then(function (env) { localStorage.setItem(KEY, JSON.stringify(env)); });
+  }).catch(gagal).then(function () { tulisTertunda--; });
+  return true;
+}
+/** Periksa PIN terhadap data terenkripsi yang tersimpan. Promise<boolean>. */
+function cekSandiSaatIni(pass) {
+  return tungguSimpan().then(function () {
+    var env = parseStored(localStorage.getItem(KEY));
+    return C.decryptEnvelope(env, pass).then(function () { return true; }, function () { return false; });
+  });
+}
+function hapusSemuaData() {
+  KS = null; AMPLOP = null; DB = C.emptyData();
+  return tungguSimpan().then(function () {
+    try { localStorage.removeItem(KEY); localStorage.removeItem(KEY_SUMBER); } catch (e) { /* abaikan */ }
+    save(true);
+  });
 }
 function sumber() { try { return localStorage.getItem(KEY_SUMBER) || ''; } catch (e) { return ''; } }
 
@@ -2337,14 +2482,28 @@ VIEWS.ekspor = function (main) {
   main.appendChild(h('div', { class: 'banner ' + (C.backupOverdue(DB.backup, t, 30) ? 'warn' : 'ok') },
     last ? 'Backup terakhir: ' + fmtTime(last) + ' (' + C.daysSince(last, t) + ' hari lalu).' : 'Belum pernah membuat backup.',
     ' Aplikasi akan mengingatkan jika lebih dari 30 hari.'));
+  var cEnc = KS ? checkbox('Enkripsi berkas backup dengan PIN yang sama (disarankan)', true) : null;
+  var bkBtn = btn('💾 Unduh backup JSON', function () {
+    var data = C.buildExport(DB, new Date());
+    var stamp = fileStamp();
+    var selesai = function (msg) { DB.backup.terakhir = nowISO(); save(); toast(msg); render(); };
+    if (cEnc && cEnc.input.checked) {
+      bkBtn.disabled = true;
+      C.encryptWithKey(data, KS, { aplikasi: 'Peta Aset Keluarga', tanggal_ekspor: data.tanggal_ekspor }).then(function (env) {
+        download('peta-aset-keluarga-backup-' + stamp + '-terenkripsi.json', JSON.stringify(env, null, 2), 'application/json;charset=utf-8');
+        selesai('Backup terenkripsi diunduh. Untuk mengimpor, diperlukan PIN yang sama.');
+      }, function () { bkBtn.disabled = false; toast('Gagal mengenkripsi backup.'); });
+      return;
+    }
+    download('peta-aset-keluarga-backup-' + stamp + '.json', JSON.stringify(data, null, 2), 'application/json;charset=utf-8');
+    selesai('Backup diunduh.');
+  }, 'primary');
   main.appendChild(h('section', { class: 'card' }, h('h3', null, 'Backup lengkap (JSON)'),
-    h('p', null, 'Satu berkas berisi semua data, termasuk versi skema dan tanggal ekspor. Simpan di tempat aman (flashdisk, folder pribadi). Berkas ini tidak dienkripsi. PIN tidak ikut diekspor.'),
-    btn('💾 Unduh backup JSON', function () {
-      var data = C.buildExport(DB, new Date());
-      download('peta-aset-keluarga-backup-' + fileStamp() + '.json', JSON.stringify(data, null, 2), 'application/json;charset=utf-8');
-      DB.backup.terakhir = nowISO(); save(); toast('Backup diunduh.'); render();
-    }, 'primary')));
-  var csv = h('section', { class: 'card' }, h('h3', null, 'Ekspor CSV (untuk Excel)'), h('p', { class: 'small muted' }, 'Berkas CSV memakai UTF-8 dengan BOM agar huruf terbaca benar di Excel.'));
+    h('p', null, 'Satu berkas berisi semua data, termasuk versi skema dan tanggal ekspor. Simpan di tempat aman (flashdisk, folder pribadi). PIN tidak pernah ikut diekspor.'),
+    KS ? [cEnc, h('p', { class: 'help' }, 'Backup terenkripsi hanya bisa dibuka dengan PIN saat backup dibuat. Jika tidak dicentang, berkas berisi teks biasa yang bisa dibaca siapa saja.')]
+      : h('p', { class: 'help' }, 'Berkas ini tidak dienkripsi. Aktifkan enkripsi di Pengaturan untuk membuat backup terenkripsi.'),
+    bkBtn));
+  var csv = h('section', { class: 'card' }, h('h3', null, 'Ekspor CSV (untuk Excel)'), h('p', { class: 'small muted' }, 'Berkas CSV memakai UTF-8 dengan BOM agar huruf terbaca benar di Excel.' + (KS ? ' CSV selalu berupa teks biasa (tidak terenkripsi).' : '')));
   csv.style.marginTop = '1rem';
   csv.appendChild(h('div', { class: 'row' }, Object.keys(CSV_DEF).map(function (k) {
     return btn(CSV_DEF[k].judul + ' (' + DB[k].length + ')', function () {
@@ -2369,7 +2528,37 @@ VIEWS.ekspor = function (main) {
     if (f.size > 10 * 1024 * 1024) { result.appendChild(h('div', { class: 'banner danger' }, 'Berkas terlalu besar (maks 10 MB).')); return; }
     var reader = new FileReader();
     reader.onload = function () {
-      var r = C.validateImport(String(reader.result));
+      var text = String(reader.result);
+      var obj = parseStored(text);
+      if (obj && C.isEncryptedEnvelope(obj)) { mintaSandiBackup(obj); return; }
+      tampilkanPratinjau(text);
+    };
+    reader.onerror = function () { result.appendChild(h('div', { class: 'banner danger' }, 'Berkas tidak bisa dibaca.')); };
+    reader.readAsText(f);
+  });
+  function mintaSandiBackup(env) {
+    clear(result);
+    var fS = field({ label: 'PIN atau kata sandi backup', type: 'password', maxlength: 128, help: 'Berkas ini terenkripsi. Masukkan PIN yang dipakai saat backup dibuat.' });
+    var sub = h('button', { type: 'submit', class: 'btn primary' }, 'Buka berkas');
+    var f2 = h('form', { class: 'banner info', novalidate: true, autocomplete: 'off' }, fS, sub);
+    f2.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!fS.input.value) { fS.setError('Masukkan PIN.'); fS.input.focus(); return; }
+      sub.disabled = true; sub.textContent = 'Membuka…'; fS.setError('');
+      C.decryptEnvelope(env, fS.input.value).then(function (res) {
+        tampilkanPratinjau(res.data);
+      }, function (err) {
+        sub.disabled = false; sub.textContent = 'Buka berkas';
+        fS.setError(err && err.message === 'CRYPTO_TIDAK_TERSEDIA' ? 'Browser ini tidak mendukung dekripsi.' : 'PIN salah atau berkas rusak. Tidak ada data yang diubah.');
+        fS.input.select();
+      });
+    });
+    result.appendChild(f2);
+    fS.input.focus();
+  }
+  function tampilkanPratinjau(input) {
+      clear(result);
+      var r = C.validateImport(input);
       if (!r.ok) {
         result.appendChild(h('div', { class: 'banner danger', role: 'alert' }, h('strong', null, 'Validasi gagal. Tidak ada data yang diubah.'),
           h('ul', null, r.errors.slice(0, 15).map(function (e) { return h('li', null, e); })), r.errors.length > 15 ? h('p', null, '…dan ' + (r.errors.length - 15) + ' galat lainnya.') : null));
@@ -2398,10 +2587,7 @@ VIEWS.ekspor = function (main) {
           toast('Impor selesai (' + (mode === 'ganti' ? 'ganti' : 'gabung') + ').'); go('#/beranda');
         });
       }, 'primary'));
-    };
-    reader.onerror = function () { result.appendChild(h('div', { class: 'banner danger' }, 'Berkas tidak bisa dibaca.')); };
-    reader.readAsText(f);
-  });
+  }
   main.appendChild(imp);
 };
 
@@ -2505,36 +2691,14 @@ VIEWS.pengaturan = function (main) {
   });
   main.appendChild(form);
 
-  // Kunci PIN (Fase 2)
-  var pinSec = h('section', { class: 'card', 'aria-labelledby': 'h-pin' }, h('h3', { id: 'h-pin' }, 'Kunci PIN (opsional)'),
-    h('p', { class: 'small muted' }, 'PIN mencegah orang lain membuka aplikasi di perangkat ini. PIN disimpan sebagai hash bergaram, bukan teks biasa. Catatan: PIN adalah kunci layar, bukan enkripsi — data di localStorage tetap tidak terenkripsi. Jika lupa PIN, satu-satunya jalan adalah menghapus data (pulihkan dari backup).'));
-  pinSec.style.marginTop = '1rem';
-  var fPin = field({ label: p.pin ? 'PIN baru' : 'PIN (4–8 angka)', type: 'password', inputmode: 'numeric', maxlength: 8 });
-  var fPin2 = field({ label: 'Ulangi PIN', type: 'password', inputmode: 'numeric', maxlength: 8 });
-  var pinForm = h('form', { novalidate: true, autocomplete: 'off' }, h('div', { class: 'grid g2' }, fPin, fPin2),
-    h('div', { class: 'row' }, h('button', { type: 'submit', class: 'btn primary' }, p.pin ? 'Ganti PIN' : 'Aktifkan PIN'),
-      p.pin ? btn('Matikan PIN', function () {
-        dialog({ judul: 'Matikan PIN', pesan: 'Aplikasi tidak akan meminta PIN lagi di perangkat ini.', ok: 'Matikan' }).then(function (ok) { if (ok) { p.pin = null; save(); toast('PIN dimatikan.'); render(); } });
-      }) : null));
-  pinForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!validateFields([[fPin, function () { var v = C.validatePin(fPin.input.value); return v.ok ? '' : v.error; }], [fPin2, function () { return fPin.input.value === fPin2.input.value ? '' : 'PIN tidak sama.'; }]])) return;
-    var salt = C.uid('s') + C.uid('t');
-    p.pin = { salt: salt, hash: C.hashPin(fPin.input.value, salt), iterasi: 2000 };
-    save(); toast('PIN aktif. PIN akan diminta setiap kali aplikasi dibuka.'); render();
-  });
-  pinSec.appendChild(h('p', null, 'Status: ', p.pin ? h('span', { class: 'badge ok' }, 'PIN aktif') : h('span', { class: 'badge' }, 'Tidak aktif')));
-  pinSec.appendChild(pinForm);
-  main.appendChild(pinSec);
+  main.appendChild(bagianEnkripsi(p));
 
   var rs = h('section', { class: 'card', 'aria-labelledby': 'h-reset' }, h('h3', { id: 'h-reset' }, 'Reset semua data'),
     h('p', null, 'Menghapus semua aset, dokumen, anggota, kontak, tugas, riwayat, dan pengaturan dari perangkat ini. Tindakan ini tidak bisa dibatalkan. Unduh backup terlebih dahulu.'),
     btn('Reset semua data…', function () {
-      dialog({ judul: 'Reset semua data', pesan: 'Semua data di perangkat ini akan dihapus permanen.', ketik: 'HAPUS', ok: 'Hapus semua data', danger: true }).then(function (ok) {
+      dialog({ judul: 'Reset semua data', pesan: 'Semua data di perangkat ini akan dihapus permanen' + (KS ? ', dan enkripsi dimatikan.' : '.'), ketik: 'HAPUS', ok: 'Hapus semua data', danger: true }).then(function (ok) {
         if (!ok) return;
-        DB = C.emptyData(); save();
-        try { localStorage.removeItem(KEY_SUMBER); } catch (e) { /* abaikan */ }
-        applySettings(); toast('Semua data telah dihapus.'); go('#/beranda');
+        hapusSemuaData().then(function () { applySettings(); toast('Semua data telah dihapus.'); go('#/beranda'); });
       });
     }, 'danger'));
   rs.style.marginTop = '1rem';
@@ -2542,15 +2706,112 @@ VIEWS.pengaturan = function (main) {
   main.appendChild(h('p', { class: 'help' }, PESAN_LOKAL));
 };
 
+// Enkripsi data dengan PIN (Pengaturan)
+function bagianEnkripsi(p) {
+  var sec = h('section', { class: 'card', 'aria-labelledby': 'h-enk' }, h('h3', { id: 'h-enk' }, 'Enkripsi data dengan PIN'));
+  sec.style.marginTop = '1rem';
+  sec.appendChild(h('p', { class: 'small' }, 'Jika aktif, seluruh data di perangkat ini disimpan dalam bentuk terenkripsi (AES-GCM 256-bit; kunci diturunkan dari PIN dengan PBKDF2-SHA-256, ' + C.ENKRIPSI_ITERASI.toLocaleString('id-ID') + ' iterasi). PIN tidak disimpan di mana pun. Aplikasi meminta PIN setiap kali dibuka.'));
+  sec.appendChild(h('div', { class: 'banner warn small' }, h('strong', null, 'Penting: '), 'tanpa PIN, data tidak bisa dibuka oleh siapa pun, termasuk Anda. Jika PIN lupa, satu-satunya jalan adalah menghapus data lalu memulihkan dari backup. Simpan PIN di tempat aman yang diketahui orang tepercaya, dan buat backup secara berkala.'));
+  if (!C.cryptoTersedia()) {
+    sec.appendChild(h('div', { class: 'banner danger' }, 'Browser ini tidak menyediakan Web Crypto, jadi enkripsi tidak bisa dipakai. Buka berkas langsung dari perangkat (file://) atau lewat https di browser modern.'));
+    return sec;
+  }
+  sec.appendChild(h('p', null, 'Status: ', KS ? h('span', { class: 'badge ok' }, '🔐 Enkripsi aktif') : h('span', { class: 'badge' }, 'Tidak aktif')));
+
+  function kekuatan(f, out) {
+    f.input.addEventListener('input', function () {
+      var v = C.validatePassphrase(f.input.value);
+      out.className = 'help ' + (!f.input.value ? '' : v.ok && !v.lemah ? 'ok-text' : 'warn-text');
+      out.textContent = !f.input.value ? '' : !v.ok ? v.error : v.lemah ? v.saran : 'Kekuatan: cukup kuat.';
+    });
+  }
+  function sibuk(b, on, teks) { b.disabled = on; if (teks) b.textContent = teks; }
+
+  if (!KS) {
+    if (p.pin) {
+      sec.appendChild(h('div', { class: 'banner info small' }, 'Kunci PIN lama (tanpa enkripsi) sedang aktif. Mengaktifkan enkripsi akan menggantinya. ',
+        btn('Matikan kunci PIN lama', function () {
+          dialog({ judul: 'Matikan kunci PIN lama', pesan: 'Aplikasi tidak akan meminta PIN lagi di perangkat ini.', ok: 'Matikan' }).then(function (ok) { if (ok) { p.pin = null; save(); toast('Kunci PIN lama dimatikan.'); render(); } });
+        }, 'sm')));
+    }
+    var fA = field({ label: 'PIN atau kata sandi baru', type: 'password', maxlength: 128, help: 'Minimal 6 karakter. Disarankan 8+ karakter campuran huruf dan angka, atau kalimat pendek.' });
+    var sA = h('div', { class: 'help', 'aria-live': 'polite' });
+    fA.appendChild(sA); kekuatan(fA, sA);
+    var fB = field({ label: 'Ulangi PIN atau kata sandi', type: 'password', maxlength: 128 });
+    var cAck = checkbox('Saya mengerti bahwa data tidak bisa dipulihkan jika PIN lupa, kecuali dari backup.', false);
+    var errAck = h('div', { class: 'err', role: 'alert' });
+    var sub = h('button', { type: 'submit', class: 'btn primary' }, '🔐 Aktifkan enkripsi');
+    var form = h('form', { novalidate: true, autocomplete: 'off' }, h('div', { class: 'grid g2' }, fA, fB), cAck, errAck, sub);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!validateFields([[fA, function () { var v = C.validatePassphrase(fA.input.value); return v.ok ? '' : v.error; }],
+        [fB, function () { return fA.input.value === fB.input.value ? '' : 'PIN tidak sama.'; }]])) return;
+      if (!cAck.input.checked) { errAck.textContent = 'Centang pernyataan di atas untuk melanjutkan.'; cAck.input.focus(); return; }
+      errAck.textContent = '';
+      sibuk(sub, true, 'Memproses…');
+      C.deriveKeyState(fA.input.value).then(function (ks) {
+        KS = ks; p.pin = null; save();
+        return tungguSimpan();
+      }).then(function () {
+        toast('Enkripsi aktif. Data di perangkat ini sekarang terenkripsi.'); render();
+      }, function () { KS = null; sibuk(sub, false, '🔐 Aktifkan enkripsi'); toast('Gagal mengaktifkan enkripsi.'); });
+    });
+    sec.appendChild(form);
+    return sec;
+  }
+
+  sec.appendChild(h('div', { class: 'row' }, btn('🔒 Kunci sekarang', function () {
+    tungguSimpan().then(function () { location.reload(); });
+  }), h('span', { class: 'help' }, 'Menghapus kunci dari memori; PIN diminta lagi.')));
+  var fL = field({ label: 'PIN saat ini', type: 'password', maxlength: 128, help: 'Diperlukan untuk mengganti PIN atau mematikan enkripsi.' });
+  var fN = field({ label: 'PIN atau kata sandi baru', type: 'password', maxlength: 128 });
+  var sN = h('div', { class: 'help', 'aria-live': 'polite' });
+  fN.appendChild(sN); kekuatan(fN, sN);
+  var fN2 = field({ label: 'Ulangi PIN baru', type: 'password', maxlength: 128 });
+  var subG = h('button', { type: 'submit', class: 'btn primary' }, 'Ganti PIN');
+  var bOff = btn('Matikan enkripsi', function () {
+    if (!validateFields([[fL, function () { return fL.input.value ? '' : 'Masukkan PIN saat ini.'; }]])) return;
+    sibuk(bOff, true);
+    cekSandiSaatIni(fL.input.value).then(function (benar) {
+      sibuk(bOff, false);
+      if (!benar) { fL.setError('PIN saat ini salah.'); fL.input.focus(); return; }
+      dialog({ judul: 'Matikan enkripsi?', pesan: 'Data akan disimpan kembali sebagai teks biasa di perangkat ini dan bisa dibaca oleh siapa pun yang memakai browser ini.', ok: 'Matikan enkripsi', danger: true }).then(function (ok) {
+        if (!ok) return;
+        KS = null; save();
+        tungguSimpan().then(function () { toast('Enkripsi dimatikan.'); render(); });
+      });
+    });
+  }, 'danger');
+  var form2 = h('form', { novalidate: true, autocomplete: 'off' }, fL, h('div', { class: 'grid g2' }, fN, fN2), h('div', { class: 'row' }, subG, bOff));
+  form2.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!validateFields([[fL, function () { return fL.input.value ? '' : 'Masukkan PIN saat ini.'; }],
+      [fN, function () { var v = C.validatePassphrase(fN.input.value); return v.ok ? '' : v.error; }],
+      [fN2, function () { return fN.input.value === fN2.input.value ? '' : 'PIN baru tidak sama.'; }]])) return;
+    sibuk(subG, true, 'Memproses…');
+    cekSandiSaatIni(fL.input.value).then(function (benar) {
+      if (!benar) { sibuk(subG, false, 'Ganti PIN'); fL.setError('PIN saat ini salah.'); fL.input.focus(); return; }
+      return C.deriveKeyState(fN.input.value).then(function (ks) {
+        KS = ks; save();
+        return tungguSimpan();
+      }).then(function () { toast('PIN diganti. Backup terenkripsi lama tetap memakai PIN lama.'); render(); });
+    }).catch(function () { sibuk(subG, false, 'Ganti PIN'); toast('Gagal mengganti PIN.'); });
+  });
+  sec.appendChild(h('h4', null, 'Ganti PIN atau matikan enkripsi'));
+  sec.appendChild(form2);
+  return sec;
+}
+
 // =============================================================================
 // 14. Bantuan dan Tentang
 // =============================================================================
 VIEWS.bantuan = function (main) {
   pageHead(main, 'Bantuan dan Tentang');
   var faq = [
-    ['Apakah data saya aman?', 'Data hanya tersimpan di localStorage browser pada perangkat ini. Aplikasi tidak memiliki server, tidak memuat skrip dari internet, dan dibatasi Content-Security-Policy sehingga tidak bisa mengirim data ke mana pun. Siapa pun yang memakai perangkat dan browser yang sama bisa membuka aplikasi, jadi gunakan kunci layar perangkat atau aktifkan PIN di Pengaturan. Aplikasi sengaja tidak menerima nomor rekening lengkap, nomor kartu, password, atau seed phrase.'],
+    ['Apakah data saya aman?', 'Data hanya tersimpan di localStorage browser pada perangkat ini. Aplikasi tidak memiliki server, tidak memuat skrip dari internet, dan dibatasi Content-Security-Policy sehingga tidak bisa mengirim data ke mana pun. Tanpa enkripsi, siapa pun yang memakai perangkat dan browser yang sama bisa membuka aplikasi. Aktifkan \u201cEnkripsi data dengan PIN\u201d di Pengaturan agar data tersimpan terenkripsi dan hanya bisa dibuka dengan PIN. Aplikasi sengaja tidak menerima nomor rekening lengkap, nomor kartu, password, atau seed phrase.'],
     ['Apa yang terjadi jika cache atau data browser dihapus?', 'Semua data di aplikasi ikut terhapus, karena disimpan di browser. Mode penyamaran (incognito) juga menghapus data saat jendela ditutup. Karena itu, buat backup JSON secara berkala dan simpan di tempat aman.'],
     ['Bagaimana cara backup?', 'Buka menu Ekspor dan Backup, lalu klik "Unduh backup JSON". Simpan berkasnya di flashdisk atau folder pribadi. Untuk memulihkan, gunakan bagian "Impor dari backup JSON" di menu yang sama. Aplikasi akan mengingatkan jika backup terakhir lebih dari 30 hari.'],
+    ['Apa yang terjadi jika saya lupa PIN enkripsi?', 'Data terenkripsi tidak bisa dibuka tanpa PIN, oleh siapa pun. Satu-satunya jalan adalah memilih "Lupa PIN?" di layar kunci untuk menghapus data, lalu mengimpor backup. Backup terenkripsi juga butuh PIN saat backup dibuat, jadi simpan PIN di tempat aman.'],
     ['Bisakah dipakai di beberapa perangkat?', 'Data tidak tersinkron otomatis. Pindahkan dengan backup JSON lalu impor di perangkat lain (pilih "Gabung" atau "Ganti").'],
     ['Apakah bisa dipakai tanpa internet?', 'Ya. Seluruh aplikasi ada dalam satu berkas HTML dan berjalan sepenuhnya offline.'],
     ['Mengapa nomor referensi hanya 8 karakter?', 'Agar tidak ada nomor rekening atau nomor kartu lengkap yang tersimpan. Isi hanya bagian yang disamarkan, misalnya 4 digit terakhir.']
@@ -2660,28 +2921,48 @@ function onboardingPlan() {
 // Kunci PIN saat dibuka (Fase 2)
 // =============================================================================
 function lockIfNeeded(next) {
-  var rec = DB.pengaturan.pin;
-  if (!rec) { next(); return; }
-  var lock = $('lock'), app = $('app'), fails = 0, until = 0;
+  var legacy = !AMPLOP && DB.pengaturan.pin;
+  if (!AMPLOP && !legacy) { next(); return; }
+  var lock = $('lock'), app = $('app'), fails = 0, until = 0, busy = false;
+  var inp = $('lock-pin'), err = $('lock-err'), sub = $('lock-submit');
+  $('lock-info').textContent = AMPLOP ? '🔐 Data di perangkat ini terenkripsi. Masukkan PIN atau kata sandi untuk membukanya.' : 'Masukkan PIN untuk membuka aplikasi.';
   lock.hidden = false; app.setAttribute('aria-hidden', 'true'); app.inert = true;
-  var inp = $('lock-pin'), err = $('lock-err');
   inp.focus();
+  function unlock() { lock.hidden = true; app.removeAttribute('aria-hidden'); app.inert = false; inp.value = ''; applySettings(); next(); }
+  function attempt(pass) {
+    if (!AMPLOP) return Promise.resolve(C.verifyPin(pass, DB.pengaturan.pin));
+    return C.decryptEnvelope(AMPLOP, pass).then(function (res) {
+      var r = C.validateImport(res.data);
+      if (r.ok) DB = r.data;
+      else {
+        try { localStorage.setItem(KEY + '.rusak.' + Date.now(), JSON.stringify(AMPLOP)); } catch (e) { /* abaikan */ }
+        muatGagal = 'Data terenkripsi berhasil dibuka tetapi isinya tidak valid. Salinan disimpan terpisah; pulihkan dari backup.';
+        DB = C.emptyData();
+      }
+      KS = res.ks; AMPLOP = null;
+      return true;
+    }, function (e) { if (e && e.message === 'CRYPTO_TIDAK_TERSEDIA') throw e; return false; });
+  }
   $('lock-form').addEventListener('submit', function (e) {
     e.preventDefault();
+    if (busy) return;
     if (Date.now() < until) { err.textContent = 'Terlalu banyak percobaan. Coba lagi dalam ' + Math.ceil((until - Date.now()) / 1000) + ' detik.'; return; }
-    if (C.verifyPin(inp.value, rec)) {
-      lock.hidden = true; app.removeAttribute('aria-hidden'); app.inert = false; inp.value = ''; next();
-    } else {
+    busy = true; sub.disabled = true; sub.textContent = 'Membuka…'; err.textContent = '';
+    attempt(inp.value).then(function (ok) {
+      busy = false; sub.disabled = false; sub.textContent = 'Buka';
+      if (ok) { unlock(); return; }
       fails++; inp.value = ''; inp.focus();
       if (fails >= 5) { until = Date.now() + 30000; fails = 0; err.textContent = 'PIN salah 5 kali. Tunggu 30 detik.'; }
-      else err.textContent = 'PIN salah.';
-    }
+      else err.textContent = 'PIN atau kata sandi salah.';
+    }, function () {
+      busy = false; sub.disabled = false; sub.textContent = 'Buka';
+      err.textContent = 'Browser ini tidak mendukung dekripsi (Web Crypto). Coba browser lain yang modern.';
+    });
   });
   $('lock-forgot').addEventListener('click', function () {
-    dialog({ judul: 'Lupa PIN', pesan: 'PIN tidak bisa dipulihkan. Anda bisa menghapus semua data di perangkat ini lalu memulihkannya dari berkas backup JSON.', ketik: 'HAPUS', ok: 'Hapus semua data', danger: true }).then(function (ok) {
+    dialog({ judul: 'Lupa PIN', pesan: 'PIN tidak bisa dipulihkan' + (AMPLOP ? ' dan data terenkripsi tidak bisa dibuka tanpanya' : '') + '. Anda bisa menghapus semua data di perangkat ini lalu memulihkannya dari berkas backup JSON.', ketik: 'HAPUS', ok: 'Hapus semua data', danger: true }).then(function (ok) {
       if (!ok) return;
-      DB = C.emptyData(); save();
-      lock.hidden = true; app.removeAttribute('aria-hidden'); app.inert = false; next();
+      hapusSemuaData().then(unlock);
     });
   });
 }
@@ -2703,7 +2984,20 @@ function init() {
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && $('sidebar').classList.contains('open')) { toggleDrawer(false); var mb = $('menu-btn'); if (mb) mb.focus(); }
   });
-  window.addEventListener('storage', function (e) { if (e.key === KEY) { load(); applySettings(); render(); } });
+  // Sinkron antar tab. Data terenkripsi dibuka dengan kunci yang sama; selain itu muat ulang (akan meminta PIN).
+  window.addEventListener('storage', function (e) {
+    if (e.key !== KEY || !$('lock').hidden) return;
+    var obj = e.newValue ? parseStored(e.newValue) : null;
+    if (obj && C.isEncryptedEnvelope(obj)) {
+      if (KS && obj.kdf.garam === KS.garam) {
+        C.decryptWithKey(obj, KS).then(function (d) { var r = C.validateImport(d); if (r.ok) { DB = r.data; applySettings(); render(); } }, function () { location.reload(); });
+      } else location.reload();
+      return;
+    }
+    if (KS) { location.reload(); return; }
+    load(); applySettings(); render();
+  });
+  window.addEventListener('beforeunload', function (e) { if (tulisTertunda > 0) { e.preventDefault(); e.returnValue = ''; } });
   lockIfNeeded(function () {
     window.addEventListener('hashchange', render);
     render();

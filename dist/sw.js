@@ -3,7 +3,7 @@
  * Tidak pernah mengirim data pengguna; data tetap di localStorage.
  */
 'use strict';
-var CACHE = 'peta-aset-keluarga-1.1.0';
+var CACHE = 'peta-aset-keluarga-1.2.0';
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (keys) {

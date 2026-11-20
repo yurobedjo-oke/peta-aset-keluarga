@@ -13,7 +13,7 @@
   'use strict';
 
   var VERSI_SKEMA = 1;
-  var VERSI_APLIKASI = '1.1.0';
+  var VERSI_APLIKASI = '1.2.0';
 
   // ---------------------------------------------------------------------------
   // Konstanta domain
@@ -513,6 +513,7 @@
       }
     }
     if (!isObj(obj)) return { ok: false, errors: ['Isi berkas harus berupa objek JSON.'], counts: {} };
+    if (obj.format === FORMAT_TERENKRIPSI) return { ok: false, terenkripsi: true, errors: ['Berkas ini terenkripsi. Masukkan PIN atau kata sandi untuk membukanya.'], counts: {} };
     if (typeof obj.versi_skema !== 'number' || !isFinite(obj.versi_skema)) {
       errors.push('Field versi_skema tidak ada atau bukan angka.');
     } else if (obj.versi_skema > VERSI_SKEMA) {
@@ -856,6 +857,111 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Enkripsi data dengan PIN/kata sandi: PBKDF2-SHA-256 -> AES-GCM 256 (Web Crypto)
+  // ---------------------------------------------------------------------------
+  var FORMAT_TERENKRIPSI = 'peta-aset-keluarga/terenkripsi';
+  var ENKRIPSI_ITERASI = 600000;
+  var B64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+
+  function getCrypto() {
+    var c = typeof globalThis !== 'undefined' ? globalThis.crypto : (typeof self !== 'undefined' ? self.crypto : undefined);
+    return c && c.subtle && c.getRandomValues ? c : null;
+  }
+  function cryptoTersedia() { return getCrypto() !== null; }
+
+  function bytesToB64(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function b64Len(b64) { try { return atob(b64).length; } catch (e) { return -1; } }
+
+  /** Validasi PIN/kata sandi enkripsi. Mengembalikan {ok, error, lemah, saran}. */
+  function validatePassphrase(p) {
+    var s = String(p == null ? '' : p);
+    if (s.length < 6) return { ok: false, error: 'Minimal 6 karakter.' };
+    if (s.length > 128) return { ok: false, error: 'Maksimal 128 karakter.' };
+    if (/^\s|\s$/.test(s)) return { ok: false, error: 'Jangan diawali atau diakhiri spasi.' };
+    var jenis = (/[a-z]/.test(s) ? 1 : 0) + (/[A-Z]/.test(s) ? 1 : 0) + (/\d/.test(s) ? 1 : 0) + (/[^A-Za-z0-9]/.test(s) ? 1 : 0);
+    var lemah = (/^\d+$/.test(s) && s.length < 12) || s.length < 8 || (jenis < 2 && s.length < 14) || /^(.)\1+$/.test(s);
+    return {
+      ok: true, lemah: lemah,
+      saran: lemah ? 'PIN ini tergolong lemah: jika seseorang menyalin data browser, PIN pendek atau hanya angka bisa ditebak komputer. Disarankan minimal 8 karakter campuran huruf dan angka, atau kalimat pendek.' : ''
+    };
+  }
+
+  /** Apakah objek berbentuk amplop data terenkripsi yang valid. */
+  function isEncryptedEnvelope(o) {
+    if (!isObj(o) || o.format !== FORMAT_TERENKRIPSI || o.versi_enkripsi !== 1) return false;
+    if (!isObj(o.kdf) || o.kdf.nama !== 'PBKDF2' || o.kdf.hash !== 'SHA-256') return false;
+    if (typeof o.kdf.iterasi !== 'number' || o.kdf.iterasi < 1000 || o.kdf.iterasi > 10000000) return false;
+    if (!isStr(o.kdf.garam) || !B64_RE.test(o.kdf.garam) || b64Len(o.kdf.garam) < 16) return false;
+    if (!isObj(o.cipher) || o.cipher.nama !== 'AES-GCM' || !isStr(o.cipher.iv) || !B64_RE.test(o.cipher.iv) || b64Len(o.cipher.iv) !== 12) return false;
+    if (!isStr(o.data) || !B64_RE.test(o.data) || b64Len(o.data) < 17) return false;
+    return true;
+  }
+
+  function aadFor(iterasi, garam) { return new TextEncoder().encode(FORMAT_TERENKRIPSI + ':1:' + iterasi + ':' + garam); }
+
+  /** Turunkan kunci dari PIN. opt: {garam (b64), iterasi}. Mengembalikan Promise<{key, garam, iterasi}>. */
+  function deriveKeyState(pass, opt) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    var o = opt || {};
+    var garam = o.garam || bytesToB64(c.getRandomValues(new Uint8Array(16)));
+    var iterasi = o.iterasi || ENKRIPSI_ITERASI;
+    return c.subtle.importKey('raw', new TextEncoder().encode(String(pass)), 'PBKDF2', false, ['deriveKey'])
+      .then(function (base) {
+        return c.subtle.deriveKey({ name: 'PBKDF2', salt: b64ToBytes(garam), iterations: iterasi, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      })
+      .then(function (key) { return { key: key, garam: garam, iterasi: iterasi }; });
+  }
+
+  /** Enkripsi objek dengan kunci turunan. IV acak baru setiap kali. Promise<amplop>. */
+  function encryptWithKey(obj, ks, extra) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    var iv = c.getRandomValues(new Uint8Array(12));
+    var plain = new TextEncoder().encode(JSON.stringify(obj));
+    return c.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: aadFor(ks.iterasi, ks.garam) }, ks.key, plain)
+      .then(function (buf) {
+        var env = {
+          format: FORMAT_TERENKRIPSI, versi_enkripsi: 1, versi_skema: VERSI_SKEMA,
+          kdf: { nama: 'PBKDF2', hash: 'SHA-256', iterasi: ks.iterasi, garam: ks.garam },
+          cipher: { nama: 'AES-GCM', iv: bytesToB64(iv) },
+          data: bytesToB64(new Uint8Array(buf))
+        };
+        if (extra) Object.keys(extra).forEach(function (k) { if (!(k in env)) env[k] = extra[k]; });
+        return env;
+      });
+  }
+
+  /** Dekripsi amplop dengan kunci yang sudah diturunkan. Galat 'KATA_SANDI_SALAH' jika gagal. */
+  function decryptWithKey(env, ks) {
+    var c = getCrypto();
+    if (!c) return Promise.reject(new Error('CRYPTO_TIDAK_TERSEDIA'));
+    if (!isEncryptedEnvelope(env)) return Promise.reject(new Error('BUKAN_AMPLOP'));
+    return c.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(env.cipher.iv), additionalData: aadFor(env.kdf.iterasi, env.kdf.garam) }, ks.key, b64ToBytes(env.data))
+      .then(function (buf) { return JSON.parse(new TextDecoder().decode(buf)); },
+        function () { throw new Error('KATA_SANDI_SALAH'); });
+  }
+
+  /** Dekripsi amplop dengan PIN. Promise<{data, ks}>. */
+  function decryptEnvelope(env, pass) {
+    if (!isEncryptedEnvelope(env)) return Promise.reject(new Error('BUKAN_AMPLOP'));
+    return deriveKeyState(pass, { garam: env.kdf.garam, iterasi: env.kdf.iterasi }).then(function (ks) {
+      return decryptWithKey(env, ks).then(function (data) { return { data: data, ks: ks }; });
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Riwayat (Fase 2)
   // ---------------------------------------------------------------------------
   var LABEL_FIELD = {
@@ -959,6 +1065,10 @@
     incompleteDocAssets: incompleteDocAssets, sortTasks: sortTasks, daysSince: daysSince,
     backupOverdue: backupOverdue, buildPrompt: buildPrompt,
     sha256Hex: sha256Hex, hashPin: hashPin, verifyPin: verifyPin, validatePin: validatePin,
+    FORMAT_TERENKRIPSI: FORMAT_TERENKRIPSI, ENKRIPSI_ITERASI: ENKRIPSI_ITERASI, cryptoTersedia: cryptoTersedia,
+    validatePassphrase: validatePassphrase, isEncryptedEnvelope: isEncryptedEnvelope, deriveKeyState: deriveKeyState,
+    encryptWithKey: encryptWithKey, decryptWithKey: decryptWithKey, decryptEnvelope: decryptEnvelope,
+    bytesToB64: bytesToB64, b64ToBytes: b64ToBytes,
     diffFields: diffFields, parseGuide: parseGuide, guideSectionText: guideSectionText,
     normSearch: normSearch, slugify: slugify, uid: uid
   };
