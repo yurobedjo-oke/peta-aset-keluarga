@@ -1,0 +1,5 @@
+seed/personal.json
+# Build personal berisi data pribadi yang disisipkan — jangan diunggah.
+dist/personal.html
+node_modules/
+.DS_Store

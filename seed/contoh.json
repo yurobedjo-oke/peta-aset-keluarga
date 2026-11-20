@@ -1,0 +1,53 @@
+{
+  "versi_skema": 1,
+  "keterangan": "Data CONTOH fiktif untuk distribusi. Semua nama, lembaga, dan nomor bukan data nyata.",
+  "pengaturan": {
+    "namaKeluarga": "Contoh",
+    "tema": "terang",
+    "ukuranFont": "normal",
+    "formatTanggal": "panjang",
+    "onboardingSelesai": true,
+    "catatRiwayat": true
+  },
+  "anggota": [
+    { "id": "ang_c1", "nama": "[CONTOH] Bapak Fiktif", "hubungan": "Kepala keluarga", "peran": "Tidak ada peran", "kontak": "", "tahuLokasiDokumen": true, "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ang_c2", "nama": "[CONTOH] Ibu Fiktif", "hubungan": "Istri", "peran": "Pelaksana", "kontak": "0800-0000-0001", "tahuLokasiDokumen": true, "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ang_c3", "nama": "[CONTOH] Anak Pertama", "hubungan": "Anak", "peran": "Ahli waris", "kontak": "0800-0000-0002", "tahuLokasiDokumen": false, "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ang_c4", "nama": "[CONTOH] Anak Kedua", "hubungan": "Anak", "peran": "Ahli waris", "kontak": "", "tahuLokasiDokumen": false, "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" }
+  ],
+  "kontak": [
+    { "id": "kon_c1", "namaLembaga": "[CONTOH] Bank Fiktif Cabang Kota", "kategori": "Bank", "namaPetugas": "[CONTOH] Petugas Layanan", "telepon": "0800-0000-0101", "alamat": "[CONTOH] Jl. Contoh No. 1, Kota Fiktif", "jamLayanan": "Senin–Jumat 08.00–15.00", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "kon_c2", "namaLembaga": "[CONTOH] Asuransi Fiktif", "kategori": "Asuransi", "namaPetugas": "[CONTOH] Agen Asuransi", "telepon": "0800-0000-0102", "alamat": "", "jamLayanan": "Senin–Sabtu 09.00–17.00", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "kon_c3", "namaLembaga": "[CONTOH] Kantor Notaris Fiktif", "kategori": "Notaris atau PPAT", "namaPetugas": "[CONTOH] Notaris", "telepon": "0800-0000-0103", "alamat": "[CONTOH] Ruko Contoh Blok A, Kota Fiktif", "jamLayanan": "Dengan janji temu", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "kon_c4", "namaLembaga": "[CONTOH] Samsat Kota Fiktif", "kategori": "Samsat", "namaPetugas": "", "telepon": "", "alamat": "[CONTOH] Jl. Contoh Raya, Kota Fiktif", "jamLayanan": "Senin–Jumat 08.00–14.00", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" }
+  ],
+  "aset": [
+    { "id": "ast_c1", "nama": "[CONTOH] Rumah Jl. Fiktif 12", "kategori": "Rumah dan Bangunan", "pemilikAnggotaId": "ang_c1", "pemilikTeks": "", "nilai": 850000000, "lokasiDokumen": "[CONTOH] Brankas kamar utama, map biru", "nomorReferensi": "**12", "jatuhTempo": "2027-08-31", "kontakIds": ["kon_c3"], "status": "Aktif", "catatan": "Entri CONTOH. Jatuh tempo = pembayaran PBB.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c2", "nama": "[CONTOH] Tanah Kebun Desa Fiktif", "kategori": "Tanah", "pemilikAnggotaId": "ang_c1", "pemilikTeks": "", "nilai": 300000000, "lokasiDokumen": "[CONTOH] Brankas kamar utama", "nomorReferensi": "", "jatuhTempo": "", "kontakIds": ["kon_c3"], "status": "Aktif", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c3", "nama": "[CONTOH] Motor Bebek 2019", "kategori": "Kendaraan", "pemilikAnggotaId": "ang_c2", "pemilikTeks": "", "nilai": 9000000, "lokasiDokumen": "[CONTOH] Laci lemari ruang tengah", "nomorReferensi": "xx34", "jatuhTempo": "2026-12-05", "kontakIds": ["kon_c4"], "status": "Aktif", "catatan": "Entri CONTOH. Jatuh tempo = pajak STNK tahunan.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c4", "nama": "[CONTOH] Deposito Bank Fiktif", "kategori": "Tabungan atau Deposito", "pemilikAnggotaId": "ang_c1", "pemilikTeks": "", "nilai": 50000000, "lokasiDokumen": "[CONTOH] Map dokumen bank", "nomorReferensi": "**5678", "jatuhTempo": "2026-11-10", "kontakIds": ["kon_c1"], "status": "Aktif", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c5", "nama": "[CONTOH] Polis Asuransi Jiwa", "kategori": "Asuransi", "pemilikAnggotaId": "ang_c1", "pemilikTeks": "", "nilai": 200000000, "lokasiDokumen": "[CONTOH] Map dokumen asuransi", "nomorReferensi": "**90", "jatuhTempo": "2027-01-04", "kontakIds": ["kon_c2"], "status": "Aktif", "catatan": "Entri CONTOH. Nilai = uang pertanggungan.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c6", "nama": "[CONTOH] Emas Batangan 10 gram", "kategori": "Emas dan Logam Mulia", "pemilikAnggotaId": "ang_c2", "pemilikTeks": "", "nilai": 15000000, "lokasiDokumen": "[CONTOH] Brankas, kotak kecil", "nomorReferensi": "", "jatuhTempo": "", "kontakIds": [], "status": "Aktif", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c7", "nama": "[CONTOH] Dompet Digital", "kategori": "Aset Digital", "pemilikAnggotaId": "", "pemilikTeks": "[CONTOH] Anak Pertama", "platform": "[CONTOH] Platform Fiktif", "nilai": null, "lokasiDokumen": "[CONTOH] Disimpan di buku catatan keluarga", "nomorReferensi": "", "jatuhTempo": "", "kontakIds": [], "status": "Aktif", "catatan": "Entri CONTOH. Tidak ada password di sini.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "ast_c8", "nama": "[CONTOH] Mobil Lama (sudah dijual)", "kategori": "Kendaraan", "pemilikAnggotaId": "ang_c1", "pemilikTeks": "", "nilai": 60000000, "lokasiDokumen": "", "nomorReferensi": "", "jatuhTempo": "", "kontakIds": [], "status": "Tidak Aktif", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" }
+  ],
+  "dokumen": [
+    { "id": "dok_c1", "nama": "[CONTOH] Sertifikat tanah rumah", "jenis": "Sertifikat tanah", "asetId": "ast_c1", "status": "Asli Tersedia", "lokasi": "[CONTOH] Brankas kamar utama", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c2", "nama": "[CONTOH] PBG rumah", "jenis": "PBG atau IMB", "asetId": "ast_c1", "status": "Fotokopi Tersedia", "lokasi": "[CONTOH] Map biru", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c3", "nama": "[CONTOH] Sertifikat tanah kebun", "jenis": "Sertifikat tanah", "asetId": "ast_c2", "status": "Asli Tersedia", "lokasi": "[CONTOH] Brankas kamar utama", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c4", "nama": "[CONTOH] BPKB motor", "jenis": "BPKB", "asetId": "ast_c3", "status": "Asli Tersedia", "lokasi": "[CONTOH] Laci lemari ruang tengah", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c5", "nama": "[CONTOH] STNK motor", "jenis": "STNK", "asetId": "ast_c3", "status": "Belum Ada", "lokasi": "", "catatan": "Entri CONTOH. Dibawa di dompet pemakai motor.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c6", "nama": "[CONTOH] Bilyet deposito", "jenis": "Bilyet deposito", "asetId": "ast_c4", "status": "Asli Tersedia", "lokasi": "[CONTOH] Map dokumen bank", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c7", "nama": "[CONTOH] Polis asuransi jiwa", "jenis": "Polis asuransi", "asetId": "ast_c5", "status": "Asli Tersedia", "lokasi": "[CONTOH] Map dokumen asuransi", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c8", "nama": "[CONTOH] Kartu keluarga", "jenis": "Kartu keluarga", "asetId": null, "status": "Asli Tersedia", "lokasi": "[CONTOH] Map dokumen keluarga", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "dok_c9", "nama": "[CONTOH] Akta nikah", "jenis": "Akta nikah", "asetId": null, "status": "Fotokopi Tersedia", "lokasi": "[CONTOH] Map dokumen keluarga", "catatan": "Entri CONTOH. Asli perlu dicari.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" }
+  ],
+  "tugas": [
+    { "id": "tgs_c1", "judul": "[CONTOH] Perbarui STNK motor", "asetId": "ast_c3", "tenggat": "2026-11-28", "status": "Belum", "prioritas": "Tinggi", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "tgs_c2", "judul": "[CONTOH] Perpanjang polis asuransi jiwa", "asetId": "ast_c5", "tenggat": "2026-12-28", "status": "Belum", "prioritas": "Tinggi", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "tgs_c3", "judul": "[CONTOH] Cek buku tabungan yang lama tidak aktif", "asetId": null, "tenggat": "2027-01-15", "status": "Berjalan", "prioritas": "Sedang", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "tgs_c4", "judul": "[CONTOH] Perbarui kontak ahli waris", "asetId": null, "tenggat": "2026-12-15", "status": "Belum", "prioritas": "Sedang", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" },
+    { "id": "tgs_c5", "judul": "[CONTOH] Simpan salinan dokumen", "asetId": null, "tenggat": "2026-10-01", "status": "Selesai", "prioritas": "Sedang", "catatan": "Entri CONTOH.", "dibuat": "2026-01-10T09:00:00.000Z", "diubah": "2026-01-10T09:00:00.000Z" }
+  ],
+  "riwayat": []
+}
